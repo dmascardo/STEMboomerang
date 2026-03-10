@@ -1,87 +1,86 @@
 # STEM Boomerang
 
-Simple setup guide for local development.
+Dockerized prototype for resume parsing (FastAPI backend + static frontend).
 
 ## Prerequisites
-- Node.js 18+
-- Python 3.10+
+- Docker Desktop (or Docker Engine + Docker Compose plugin)
 
-## 1. Clone and open project
-```bash
-git clone <your-repo-url>
-cd STEMboomerang
+## Project Structure
+```text
+project-root/
+  backend/
+    main.py
+    requirements.txt
+    Dockerfile
+  frontend/
+    Dockerfile
+    nginx.conf
+    src/
+  docker-compose.yml
+  .env.example
+  README.md
 ```
 
-## 2. Set up backend (FastAPI)
-From the project root:
-
+## Quick Start (Local)
+1. Copy environment template:
 ```bash
-cd backend
-python -m venv .venv
+cp .env.example .env
+```
+On Windows PowerShell:
+```powershell
+Copy-Item .env.example .env
 ```
 
-Activate the virtual environment:
-
+2. Start everything:
 ```bash
-# Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1
-
-# macOS/Linux
-source .venv/bin/activate
+docker compose up --build
 ```
 
-Install Python dependencies:
+3. Open the app:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Backend health check: `http://localhost:8000/health`
 
+## Stop the Project
 ```bash
-pip install -r requirements.txt
+docker compose down
 ```
 
-Run backend server:
-
+To also remove persisted volumes:
 ```bash
-uvicorn main:app --reload --port 8000
+docker compose down -v
 ```
 
-Backend URL: `http://127.0.0.1:8000`
-Health check: `http://127.0.0.1:8000/health`
+## How the Containers Work Together
+- `backend`:
+  - Built from `backend/Dockerfile` (Python 3.11).
+  - Installs `backend/requirements.txt`.
+  - Runs `uvicorn main:app --host 0.0.0.0 --port 8000`.
+  - Persists SQLite DB at `/app/data/candidates.db` using a named Docker volume (`db_data`).
+  - Persists uploaded files at `/app/uploads` using `uploads_data`.
+- `frontend`:
+  - Built from `frontend/Dockerfile`.
+  - Uses Node to build static assets, then serves them via Nginx.
+  - Exposed at `http://localhost:5173`.
+  - Calls backend API through `VITE_API_BASE_URL` (set in `.env`, defaults to `http://127.0.0.1:8000`).
 
-## 3. Set up frontend (Vite + React)
-Open a new terminal in the project root:
+## Environment Variables
+Use `.env` (copied from `.env.example`) for secrets/config:
+- `OPENAI_API_KEY`: optional for LLM extraction.
+- `OPENAI_MODEL`: default model.
+- `FRONTEND_ORIGINS`: allowed browser origins for backend CORS.
+- `VITE_API_BASE_URL`: frontend API base URL at build time.
+- `VITE_OPENAI_API_KEY`: optional frontend key (not recommended for production).
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Local Run Instructions
+1. Clone repo and open in terminal.
+2. Copy `.env.example` to `.env`.
+3. Add API keys in `.env` if needed.
+4. Run `docker compose up --build`.
+5. Use `http://localhost:5173`.
 
-Frontend URL: `http://localhost:5173`
-
-The frontend is already configured to proxy `/api` requests to `http://127.0.0.1:8000`.
-
-## 4. Optional: enable OpenAI extraction
-This app works without an API key (heuristic fallback mode).
-
-If you want LLM extraction, set an environment variable before starting backend:
-
-```bash
-# Windows (PowerShell)
-$env:OPENAI_API_KEY="sk-..."
-
-# macOS/Linux
-export OPENAI_API_KEY="sk-..."
-```
-
-Optional model override:
-
-```bash
-# Windows (PowerShell)
-$env:OPENAI_MODEL="gpt-4o-mini"
-
-# macOS/Linux
-export OPENAI_MODEL="gpt-4o-mini"
-```
-
-## Common issues
-- Port `8000` busy: run backend on another port and update proxy target in `vite.config.ts`.
-- Port `5173` busy: Vite will suggest the next available port.
-- CORS/API errors: make sure backend is running before frontend.
+## Railway Compatibility Notes
+- The setup is container-based and portable.
+- `backend` and `frontend` are independent services, which maps well to Railway multi-service deployment.
+- For deployment, set environment variables in Railway (same keys from `.env.example`).
+- Ensure `VITE_API_BASE_URL` points to the deployed backend URL before building the frontend image.

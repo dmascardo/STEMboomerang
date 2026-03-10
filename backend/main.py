@@ -28,12 +28,15 @@ except Exception:
 # =========================================================
 app = FastAPI(title="STEM Boomerang Backend", version="2.0.2")
 
+cors_origins_env = os.getenv(
+    "FRONTEND_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173",
+)
+cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,10 +53,11 @@ if load_dotenv:
 # Paths + DB
 # =========================================================
 BASE_DIR = Path(__file__).resolve().parent  # backend/
-DB_PATH = (BASE_DIR / "candidates.db").resolve()
+DB_PATH = Path(os.getenv("SQLITE_PATH", str(BASE_DIR / "candidates.db"))).resolve()
 UPLOADS_DIR = (BASE_DIR / "uploads").resolve()
 
 BASE_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"

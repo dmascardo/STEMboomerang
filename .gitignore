@@ -6,6 +6,7 @@ Thumbs.db
 
 # Root local cache
 .vite/
+.env
 
 # Python backend
 backend/.venv/
