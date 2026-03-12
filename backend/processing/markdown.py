@@ -3,7 +3,16 @@ from typing import List
 # =========================================================
 # Markdown conversion
 # =========================================================
-SECTION_HEADERS = ["education", "experience", "skills", "projects", "certifications", "summary", "publications", "awards"]
+SECTION_HEADERS = [
+    "education",
+    "experience",
+    "skills",
+    "projects",
+    "certifications",
+    "summary",
+    "publications",
+    "awards",
+]
 
 
 def to_markdown(resume_text: str) -> str:

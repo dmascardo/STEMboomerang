@@ -1,30 +1,27 @@
 from __future__ import annotations
 
-import json
 import os
-import re
-import shutil
-import hashlib
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List
 
 from processing.core import process_resume_file
-from utils.list_files import print_directory_tree
-from response_types import UploadResponse, CandidateOut, ResumeOut, BatchUploadResponse, CandidateUpdate
+from response_types import (
+    UploadResponse,
+    CandidateOut,
+    ResumeOut,
+    BatchUploadResponse,
+    CandidateUpdate,
+)
 from models import CandidateDB, ResumeDB, Base
 from constants import BASE_DIR, DB_PATH, UPLOADS_DIR, DATABASE_URL
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 
 # Optional (recommended): load OPENAI_API_KEY from backend/.env
 try:
-    from dotenv import load_dotenv  
+    from dotenv import load_dotenv
 except Exception:
     load_dotenv = None
 
@@ -38,7 +35,9 @@ cors_origins_env = os.getenv(
     "FRONTEND_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
-cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+cors_origins = [
+    origin.strip() for origin in cors_origins_env.split(",") if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,12 +55,12 @@ if load_dotenv:
     load_dotenv()  # loads backend/.env if present
 
 
-
 engine = create_engine(
-    DATABASE_URL,   
+    DATABASE_URL,
     connect_args={"check_same_thread": False},
     future=True,
 )
+
 
 # 3. Create all tables in the database
 def create_db_and_tables():
@@ -69,8 +68,6 @@ def create_db_and_tables():
 
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-
-
 
 
 @app.on_event("startup")
@@ -92,9 +89,13 @@ def ensure_resume_dedupe_schema() -> None:
             col_names = {str(row[1]) for row in cols}
 
             if "content_sha256" not in col_names:
-                conn.exec_driver_sql("ALTER TABLE resumes ADD COLUMN content_sha256 VARCHAR")
+                conn.exec_driver_sql(
+                    "ALTER TABLE resumes ADD COLUMN content_sha256 VARCHAR"
+                )
             if "normalized_text_sha256" not in col_names:
-                conn.exec_driver_sql("ALTER TABLE resumes ADD COLUMN normalized_text_sha256 VARCHAR")
+                conn.exec_driver_sql(
+                    "ALTER TABLE resumes ADD COLUMN normalized_text_sha256 VARCHAR"
+                )
 
             conn.exec_driver_sql(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_resumes_content_sha256 "
@@ -166,7 +167,6 @@ def get_db() -> Session:
         db.close()
 
 
-
 # =========================================================
 # Routes
 # =========================================================
@@ -206,6 +206,7 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db)) -> Candidate
 def list_resumes(db: Session = Depends(get_db)) -> List[ResumeDB]:
     return db.query(ResumeDB).order_by(ResumeDB.id.desc()).all()
 
+
 @app.post("/resumes/temp-upload")
 def temp_upload_resume(
     file: UploadFile = File(...),
@@ -213,6 +214,7 @@ def temp_upload_resume(
 ) -> UploadResponse:
     print(f"Temp upload resume: {file.filename}")
     return process_resume_file(file=file, db=db, overrides={})
+
 
 @app.post("/resumes/upload", response_model=UploadResponse)
 def upload_resume(
@@ -282,6 +284,7 @@ def batch_upload_resumes(
 
     return BatchUploadResponse(results=results)
 
+
 @app.post("/candidates/update", response_model=CandidateOut)
 def update_candidate(
     id: int,
@@ -291,7 +294,7 @@ def update_candidate(
     candidate = db.get(CandidateDB, id)
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
-    
+
     for field, value in candidate.model_dump().items():
         setattr(candidate, field, value)
     db.commit()

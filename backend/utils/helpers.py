@@ -4,6 +4,7 @@ import hashlib
 import re
 from pathlib import Path
 
+
 # =========================================================
 # Helpers - JSON, normalization
 # =========================================================
@@ -94,19 +95,23 @@ def extract_text_pdf(path: Path) -> str:
     """
     print(f"Extracting text from PDF: {path}")
     try:
-        import pdfplumber  
+        import pdfplumber
+
         print(f"Extracting text from PDF: {path}")
         with pdfplumber.open(str(path)) as pdf:
-            text = "\n".join([(page.extract_text() or "") for page in pdf.pages]).strip()
+            text = "\n".join(
+                [(page.extract_text() or "") for page in pdf.pages]
+            ).strip()
             if text:
                 print(f"Extracted text from PDF: {text}")
                 return text
-            
+
     except Exception:
         pass
 
     try:
-        from pypdf import PdfReader  
+        from pypdf import PdfReader
+
         print(f"Extracting text from PDF: {path}")
         reader = PdfReader(str(path))
         print(f"Extracted text from PDF: {reader}")
@@ -121,14 +126,16 @@ def extract_text_pdf(path: Path) -> str:
 
 def get_pdf_page_count(path: Path) -> int:
     try:
-        import pdfplumber  
+        import pdfplumber
+
         with pdfplumber.open(str(path)) as pdf:
             return int(len(pdf.pages))
     except Exception:
         pass
 
     try:
-        from pypdf import PdfReader  
+        from pypdf import PdfReader
+
         reader = PdfReader(str(path))
         return int(len(reader.pages))
     except Exception:
@@ -137,7 +144,8 @@ def get_pdf_page_count(path: Path) -> int:
 
 def extract_text_docx(path: Path) -> str:
     try:
-        import docx  
+        import docx
+
         d = docx.Document(str(path))
         return "\n".join([p.text for p in d.paragraphs if p.text]).strip()
     except Exception:
@@ -163,4 +171,3 @@ def compute_text_quality(parsed_char_count: int) -> str:
     if parsed_char_count >= 300:
         return "Medium"
     return "Low"
-

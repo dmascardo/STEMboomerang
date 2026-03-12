@@ -1,8 +1,13 @@
 from typing import Any, Dict, List
 from processing.heuristics import STATE_ABBR_TO_FULL
-from utils.helpers import normalize_str, title_case_words, normalize_email, normalize_state, make_location_display
+from utils.helpers import (
+    normalize_str,
+    title_case_words,
+    normalize_email,
+    normalize_state,
+    make_location_display,
+)
 from processing.llm import ALL_FIELDS, LLM_REQUIRED_FIELDS
-
 
 
 # =========================================================
@@ -11,8 +16,12 @@ from processing.llm import ALL_FIELDS, LLM_REQUIRED_FIELDS
 def count_populated_fields(data: Dict[str, Any]) -> int:
     count = 0
     for k in ALL_FIELDS + [
-        "state_full", "location_display",
-        "resume_file_name", "resume_file_type", "resume_page_count", "resume_text_quality",
+        "state_full",
+        "location_display",
+        "resume_file_name",
+        "resume_file_type",
+        "resume_page_count",
+        "resume_text_quality",
     ]:
         v = data.get(k)
         if v is None:
@@ -25,7 +34,6 @@ def count_populated_fields(data: Dict[str, Any]) -> int:
 
 def normalize_fields(data: Dict[str, Any]) -> Dict[str, Any]:
     data["email"] = normalize_email(data.get("email"))
-
 
     for u in ["linkedin_url", "github_url", "portfolio_url"]:
         v = data.get(u)
@@ -43,7 +51,9 @@ def normalize_fields(data: Dict[str, Any]) -> Dict[str, Any]:
 
     if data.get("state") and not data.get("state_full"):
         data["state_full"] = STATE_ABBR_TO_FULL.get(data["state"])
-    data["location_display"] = make_location_display(data.get("city"), data.get("state"))
+    data["location_display"] = make_location_display(
+        data.get("city"), data.get("state")
+    )
 
     return data
 
@@ -75,7 +85,9 @@ def compute_flags(data: Dict[str, Any], resume_text_quality: str) -> Dict[str, A
 
     if len(missing) == 0 and resume_text_quality == "High":
         conf = "High"
-    elif len(missing) <= 2 and found >= 10 and resume_text_quality in ("High", "Medium"):
+    elif (
+        len(missing) <= 2 and found >= 10 and resume_text_quality in ("High", "Medium")
+    ):
         conf = "Medium"
     else:
         conf = "Low"
@@ -93,4 +105,3 @@ def compute_flags(data: Dict[str, Any], resume_text_quality: str) -> Dict[str, A
         "flag_reasons": flags,
         "flag_details": " ".join(details) if details else None,
     }
-

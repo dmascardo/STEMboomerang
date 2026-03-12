@@ -1,6 +1,5 @@
-from pydantic import BaseModel
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
 
 Base = declarative_base()
@@ -14,6 +13,7 @@ class CandidateDB(Base):
     Deliverable 1 fields + quality indicators + derived fields,
     stored in ONE table (your request).
     """
+
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -109,6 +109,7 @@ class ResumeDB(Base):
     """
     File-level log for batch runs + debugging.
     """
+
     __tablename__ = "resumes"
 
     id = Column(Integer, primary_key=True, index=True)

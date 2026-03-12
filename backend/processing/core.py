@@ -4,16 +4,43 @@ from fastapi import HTTPException
 from fastapi.datastructures import UploadFile
 from sqlalchemy.orm import Session
 from models import CandidateDB, ResumeDB
-from utils.helpers import compute_text_quality, detect_file_type, compute_sha256_bytes, extract_text_docx, extract_text_pdf, extract_text_txt, get_docx_page_count_estimate, get_pdf_page_count, normalize_email, normalize_resume_text_for_hash, normalize_str, safe_json, to_db_text
+from utils.helpers import (
+    compute_text_quality,
+    detect_file_type,
+    compute_sha256_bytes,
+    extract_text_docx,
+    extract_text_pdf,
+    extract_text_txt,
+    get_docx_page_count_estimate,
+    get_pdf_page_count,
+    normalize_email,
+    normalize_resume_text_for_hash,
+    normalize_str,
+    safe_json,
+    to_db_text,
+)
 from utils.list_files import print_directory_tree
-from pathlib import Path
 from datetime import datetime
 from processing.markdown import to_markdown
 from processing.llm import ALL_FIELDS, try_openai_llm_extract
 from processing.quality import compute_flags, normalize_fields
-from processing.heuristics import EMAIL_RE, guess_email, guess_phone, guess_linkedin, guess_github, guess_portfolio, guess_city_state, guess_full_name, guess_degree_and_school, guess_terminal_degree_year, guess_current_job_title_and_company, derive_career_level_signals
+from processing.heuristics import (
+    EMAIL_RE,
+    guess_email,
+    guess_phone,
+    guess_linkedin,
+    guess_github,
+    guess_portfolio,
+    guess_city_state,
+    guess_full_name,
+    guess_degree_and_school,
+    guess_terminal_degree_year,
+    guess_current_job_title_and_company,
+    derive_career_level_signals,
+)
 from response_types import UploadResponse
 from constants import UPLOADS_DIR
+
 
 # =========================================================
 # Core processing function
@@ -37,7 +64,11 @@ def process_resume_file(
         .first()
     )
     if existing_resume:
-        existing_candidate = db.get(CandidateDB, existing_resume.candidate_id) if existing_resume.candidate_id else None
+        existing_candidate = (
+            db.get(CandidateDB, existing_resume.candidate_id)
+            if existing_resume.candidate_id
+            else None
+        )
         if not existing_candidate:
             raise HTTPException(
                 status_code=409,
@@ -81,7 +112,9 @@ def process_resume_file(
     normalized_text_sha256 = None
     normalized_for_hash = normalize_resume_text_for_hash(text)
     if normalized_for_hash:
-        normalized_text_sha256 = compute_sha256_bytes(normalized_for_hash.encode("utf-8"))
+        normalized_text_sha256 = compute_sha256_bytes(
+            normalized_for_hash.encode("utf-8")
+        )
 
     if normalized_text_sha256:
         existing_text_resume = (
@@ -96,7 +129,11 @@ def process_resume_file(
                     saved_path.unlink()
                 except Exception:
                     pass
-            existing_candidate = db.get(CandidateDB, existing_text_resume.candidate_id) if existing_text_resume.candidate_id else None
+            existing_candidate = (
+                db.get(CandidateDB, existing_text_resume.candidate_id)
+                if existing_text_resume.candidate_id
+                else None
+            )
             if not existing_candidate:
                 raise HTTPException(
                     status_code=409,
@@ -226,47 +263,48 @@ def process_resume_file(
         terminal_degree_year=extracted.get("terminal_degree_year"),
         current_job_title=extracted.get("current_job_title"),
         resume_source_link=extracted.get("resume_source_link"),
-
         skills=to_db_text(extracted.get("skills")),
         professional_summary=to_db_text(extracted.get("professional_summary")),
         latest_company=to_db_text(extracted.get("latest_company")),
         certifications=to_db_text(extracted.get("certifications")),
         portfolio_url=to_db_text(extracted.get("portfolio_url")),
         github_url=to_db_text(extracted.get("github_url")),
-
         academic_title=to_db_text(extracted.get("academic_title")),
         research_area=to_db_text(extracted.get("research_area")),
         publications_summary=to_db_text(extracted.get("publications_summary")),
         awards_summary=to_db_text(extracted.get("awards_summary")),
-
         state_full=to_db_text(extracted.get("state_full")),
         location_display=to_db_text(extracted.get("location_display")),
-
         years_experience_overall=to_db_text(extracted.get("years_experience_overall")),
-        years_experience_in_field=to_db_text(extracted.get("years_experience_in_field")),
+        years_experience_in_field=to_db_text(
+            extracted.get("years_experience_in_field")
+        ),
         title_seniority_signal=to_db_text(extracted.get("title_seniority_signal")),
         education_stage_signal=to_db_text(extracted.get("education_stage_signal")),
         career_level_overall=to_db_text(extracted.get("career_level_overall")),
-        career_level_target_field=to_db_text(extracted.get("career_level_target_field")),
+        career_level_target_field=to_db_text(
+            extracted.get("career_level_target_field")
+        ),
         career_level_confidence=to_db_text(extracted.get("career_level_confidence")),
         career_level_reason=to_db_text(extracted.get("career_level_reason")),
-
         resume_file_name=file.filename,
         resume_file_type=file_type,
         resume_page_count=page_count,
         resume_text_quality=resume_text_quality,
-
         needs_review=quality["needs_review"],
         review_reason=quality["review_reason"],
         parsed_char_count=parsed_char_count,
         llm_input_char_count=llm_input_char_count,
         fields_found_count=quality["fields_found_count"],
         required_fields_found_count=quality["required_fields_found_count"],
-        required_fields_missing=to_db_text(quality["required_fields_missing"]) if quality["required_fields_missing"] else None,
+        required_fields_missing=to_db_text(quality["required_fields_missing"])
+        if quality["required_fields_missing"]
+        else None,
         extraction_confidence=quality["extraction_confidence"],
-        flag_reasons=to_db_text(quality["flag_reasons"]) if quality["flag_reasons"] else None,
+        flag_reasons=to_db_text(quality["flag_reasons"])
+        if quality["flag_reasons"]
+        else None,
         flag_details=quality["flag_details"],
-
         extracted_fields=safe_json(
             {
                 "source": "upload_and_extract",
@@ -337,7 +375,11 @@ def process_resume_file(
             if existing_resume:
                 duplicate_type = "content"
         if existing_resume:
-            existing_candidate = db.get(CandidateDB, existing_resume.candidate_id) if existing_resume.candidate_id else None
+            existing_candidate = (
+                db.get(CandidateDB, existing_resume.candidate_id)
+                if existing_resume.candidate_id
+                else None
+            )
             if existing_candidate:
                 return UploadResponse(
                     candidate=existing_candidate,
@@ -350,5 +392,6 @@ def process_resume_file(
     db.refresh(candidate)
     db.refresh(resume_row)
 
-    return UploadResponse(candidate=candidate, resume=resume_row, duplicate=False, duplicate_type=None)
-
+    return UploadResponse(
+        candidate=candidate, resume=resume_row, duplicate=False, duplicate_type=None
+    )

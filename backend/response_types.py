@@ -4,7 +4,6 @@ from datetime import datetime
 from pydantic_partial import PartialModelMixin
 
 
-
 # =========================================================
 # Response Schemas
 # =========================================================
@@ -97,7 +96,6 @@ class UploadResponse(BaseModel):
 
 class BatchUploadResponse(BaseModel):
     results: List[UploadResponse]
-
 
 
 CandidateUpdate = CandidateOut.model_as_partial()

@@ -10,31 +10,79 @@ from utils.helpers import title_case_words
 EMAIL_RE = re.compile(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)")
 PHONE_RE = re.compile(r"(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}")
 URL_RE = re.compile(r"(https?://[^\s)]+)")
-LINKEDIN_RE = re.compile(r"(https?://(?:www\.)?linkedin\.com/[^\s)]+|(?:www\.)?linkedin\.com/[^\s)]+)", re.IGNORECASE)
-GITHUB_RE = re.compile(r"(https?://(?:www\.)?github\.com/[A-Za-z0-9_.-]+|(?:www\.)?github\.com/[A-Za-z0-9_.-]+)", re.IGNORECASE)
+LINKEDIN_RE = re.compile(
+    r"(https?://(?:www\.)?linkedin\.com/[^\s)]+|(?:www\.)?linkedin\.com/[^\s)]+)",
+    re.IGNORECASE,
+)
+GITHUB_RE = re.compile(
+    r"(https?://(?:www\.)?github\.com/[A-Za-z0-9_.-]+|(?:www\.)?github\.com/[A-Za-z0-9_.-]+)",
+    re.IGNORECASE,
+)
 
 STATE_ABBREV = (
     "AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|"
     "MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC"
 )
 STATE_NAME_TO_ABBR: Dict[str, str] = {
-    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR", "california": "CA",
-    "colorado": "CO", "connecticut": "CT", "delaware": "DE", "florida": "FL", "georgia": "GA",
-    "hawaii": "HI", "idaho": "ID", "illinois": "IL", "indiana": "IN", "iowa": "IA",
-    "kansas": "KS", "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
-    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS", "missouri": "MO",
-    "montana": "MT", "nebraska": "NE", "nevada": "NV", "new hampshire": "NH", "new jersey": "NJ",
-    "new mexico": "NM", "new york": "NY", "north carolina": "NC", "north dakota": "ND", "ohio": "OH",
-    "oklahoma": "OK", "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
-    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT", "vermont": "VT",
-    "virginia": "VA", "washington": "WA", "west virginia": "WV", "wisconsin": "WI", "wyoming": "WY",
+    "alabama": "AL",
+    "alaska": "AK",
+    "arizona": "AZ",
+    "arkansas": "AR",
+    "california": "CA",
+    "colorado": "CO",
+    "connecticut": "CT",
+    "delaware": "DE",
+    "florida": "FL",
+    "georgia": "GA",
+    "hawaii": "HI",
+    "idaho": "ID",
+    "illinois": "IL",
+    "indiana": "IN",
+    "iowa": "IA",
+    "kansas": "KS",
+    "kentucky": "KY",
+    "louisiana": "LA",
+    "maine": "ME",
+    "maryland": "MD",
+    "massachusetts": "MA",
+    "michigan": "MI",
+    "minnesota": "MN",
+    "mississippi": "MS",
+    "missouri": "MO",
+    "montana": "MT",
+    "nebraska": "NE",
+    "nevada": "NV",
+    "new hampshire": "NH",
+    "new jersey": "NJ",
+    "new mexico": "NM",
+    "new york": "NY",
+    "north carolina": "NC",
+    "north dakota": "ND",
+    "ohio": "OH",
+    "oklahoma": "OK",
+    "oregon": "OR",
+    "pennsylvania": "PA",
+    "rhode island": "RI",
+    "south carolina": "SC",
+    "south dakota": "SD",
+    "tennessee": "TN",
+    "texas": "TX",
+    "utah": "UT",
+    "vermont": "VT",
+    "virginia": "VA",
+    "washington": "WA",
+    "west virginia": "WV",
+    "wisconsin": "WI",
+    "wyoming": "WY",
     "district of columbia": "DC",
 }
 STATE_ABBR_TO_FULL = {v: k.title() for k, v in STATE_NAME_TO_ABBR.items()}
 
 CITY_STATE_RE = re.compile(rf"\b([A-Za-z][A-Za-z .'-]+?),\s*({STATE_ABBREV})\b")
 CITY_STATE_SPACE_RE = re.compile(rf"\b([A-Za-z][A-Za-z .'-]+?)\s+({STATE_ABBREV})\b")
-CITY_STATE_PUNCT_RE = re.compile(rf"\b([A-Za-z][A-Za-z .'-]+?)\s*[•·–—\-]\s*({STATE_ABBREV})\b")
+CITY_STATE_PUNCT_RE = re.compile(
+    rf"\b([A-Za-z][A-Za-z .'-]+?)\s*[•·–—\-]\s*({STATE_ABBREV})\b"
+)
 CITY_STATE_FULLNAME_RE = re.compile(r"\b([A-Za-z][A-Za-z .'-]+?),\s*([A-Za-z ]{3,})\b")
 
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
@@ -115,8 +163,15 @@ def guess_full_name(text: str) -> Optional[str]:
         return None
 
     headers = {
-        "summary", "experience", "education", "skills", "projects", "certifications",
-        "work experience", "technical skills", "professional experience"
+        "summary",
+        "experience",
+        "education",
+        "skills",
+        "projects",
+        "certifications",
+        "work experience",
+        "technical skills",
+        "professional experience",
     }
 
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
@@ -149,7 +204,19 @@ def guess_degree_and_school(text: str) -> Tuple[Optional[str], Optional[str]]:
     if not text:
         return None, None
 
-    degree_keywords = ["bachelor", "b.sc", "bs", "b.s", "master", "m.sc", "ms", "m.s", "phd", "doctor", "associate"]
+    degree_keywords = [
+        "bachelor",
+        "b.sc",
+        "bs",
+        "b.s",
+        "master",
+        "m.sc",
+        "ms",
+        "m.s",
+        "phd",
+        "doctor",
+        "associate",
+    ]
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
     school = None
@@ -157,7 +224,9 @@ def guess_degree_and_school(text: str) -> Tuple[Optional[str], Optional[str]]:
 
     for ln in lines[:160]:
         low = ln.lower()
-        if not school and ("university" in low or "college" in low or "institute" in low):
+        if not school and (
+            "university" in low or "college" in low or "institute" in low
+        ):
             school = ln[:140].strip()
         if not degree and any(k in low for k in degree_keywords):
             degree = ln[:180].strip()
@@ -173,8 +242,20 @@ def guess_terminal_degree_year(text: str) -> Optional[str]:
 
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     preferred = [
-        ln for ln in lines[:220]
-        if any(k in ln.lower() for k in ["graduation", "expected", "bachelor", "master", "phd", "university", "college"])
+        ln
+        for ln in lines[:220]
+        if any(
+            k in ln.lower()
+            for k in [
+                "graduation",
+                "expected",
+                "bachelor",
+                "master",
+                "phd",
+                "university",
+                "college",
+            ]
+        )
     ]
     for ln in preferred[:60]:
         m = YEAR_RE.search(ln)
@@ -185,7 +266,9 @@ def guess_terminal_degree_year(text: str) -> Optional[str]:
     return m2.group(1) if m2 else None
 
 
-def guess_current_job_title_and_company(text: str) -> Tuple[Optional[str], Optional[str]]:
+def guess_current_job_title_and_company(
+    text: str,
+) -> Tuple[Optional[str], Optional[str]]:
     if not text:
         return None, None
 
@@ -197,7 +280,7 @@ def guess_current_job_title_and_company(text: str) -> Tuple[Optional[str], Optio
             break
 
     start = exp_idx + 1 if exp_idx is not None else 0
-    for ln in lines[start:start + 60]:
+    for ln in lines[start : start + 60]:
         if ln.startswith(("•", "●", "-")):
             continue
 
@@ -212,7 +295,6 @@ def guess_current_job_title_and_company(text: str) -> Tuple[Optional[str], Optio
                 return parts[0][:140], parts[1][:140]
 
     return None, None
-
 
 
 # =========================================================
@@ -259,7 +341,11 @@ def derive_career_level_signals(
         edu_signal = "BS"
 
     years = []
-    for m in re.finditer(r"\b(19\d{2}|20\d{2})\s*[-–—]\s*(19\d{2}|20\d{2}|present)\b", text, flags=re.IGNORECASE):
+    for m in re.finditer(
+        r"\b(19\d{2}|20\d{2})\s*[-–—]\s*(19\d{2}|20\d{2}|present)\b",
+        text,
+        flags=re.IGNORECASE,
+    ):
         a = m.group(1)
         b = m.group(2)
         try:
@@ -292,7 +378,15 @@ def derive_career_level_signals(
         level = "Early Career"
         confidence = "Medium"
         reason_parts.append(f"Title seniority signal: {title_signal}.")
-    elif title_signal in ("Senior", "Lead", "Principal", "Manager", "Director", "VP", "Chief"):
+    elif title_signal in (
+        "Senior",
+        "Lead",
+        "Principal",
+        "Manager",
+        "Director",
+        "VP",
+        "Chief",
+    ):
         level = "Senior"
         confidence = "Medium"
         reason_parts.append(f"Title seniority signal: {title_signal}.")

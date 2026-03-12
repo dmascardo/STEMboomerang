@@ -20,19 +20,43 @@ LLM_REQUIRED_FIELDS = [
 ]
 
 ALL_FIELDS = [
-    "full_name", "email", "phone", "linkedin_url", "city", "state",
-    "school", "degree", "terminal_degree_year", "current_job_title", "resume_source_link",
-    "skills", "professional_summary", "latest_company", "certifications", "portfolio_url", "github_url",
-    "academic_title", "research_area", "publications_summary", "awards_summary",
-    "years_experience_overall", "years_experience_in_field", "title_seniority_signal",
-    "education_stage_signal", "career_level_overall", "career_level_target_field",
-    "career_level_confidence", "career_level_reason",
+    "full_name",
+    "email",
+    "phone",
+    "linkedin_url",
+    "city",
+    "state",
+    "school",
+    "degree",
+    "terminal_degree_year",
+    "current_job_title",
+    "resume_source_link",
+    "skills",
+    "professional_summary",
+    "latest_company",
+    "certifications",
+    "portfolio_url",
+    "github_url",
+    "academic_title",
+    "research_area",
+    "publications_summary",
+    "awards_summary",
+    "years_experience_overall",
+    "years_experience_in_field",
+    "title_seniority_signal",
+    "education_stage_signal",
+    "career_level_overall",
+    "career_level_target_field",
+    "career_level_confidence",
+    "career_level_reason",
 ]
 
 
-def try_openai_llm_extract(markdown_text: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def try_openai_llm_extract(
+    markdown_text: str,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     try:
-        from openai import OpenAI  
+        from openai import OpenAI
     except Exception:
         return None, "openai_not_installed"
 
