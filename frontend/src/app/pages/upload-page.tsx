@@ -30,8 +30,8 @@ async function extractTextFromPdfFallback(file: File): Promise<string> {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
     const strings = content.items
-        .map((item: any) => ('str' in item ? item.str : ''))
-        .filter(Boolean);
+      .map((item: any) => ('str' in item ? item.str : ''))
+      .filter(Boolean);
 
     fullText += strings.join(' ') + '\n';
   }
@@ -85,7 +85,7 @@ export function UploadPage() {
       formData.append('resume_source_link', sourceLink.trim());
     }
 
-    const response = await fetch(`${API_BASE_URL}/resumes/upload`, {
+    const response = await fetch(`${API_BASE_URL}/resumes/temp-upload`, {
       method: 'POST',
       body: formData,
     });
@@ -188,8 +188,8 @@ export function UploadPage() {
           } catch (fallbackError) {
             console.error('PDF extraction failed (fallback):', fallbackError);
             setError(
-                'Failed to extract text from this PDF. Please try a different PDF, or copy/paste the resume text. ' +
-                'Tip: scanned/image-only PDFs may require OCR.'
+              'Failed to extract text from this PDF. Please try a different PDF, or copy/paste the resume text. ' +
+              'Tip: scanned/image-only PDFs may require OCR.'
             );
             toast.error('PDF extraction failed');
             setIsExtracting(false);
@@ -309,163 +309,163 @@ AWS Certified Developer - Associate (2022)`;
   };
 
   return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate('/')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Upload Resume</h1>
-                <p className="text-gray-600 mt-1">Extract candidate information from resume</p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Upload Resume</h1>
+              <p className="text-gray-600 mt-1">Extract candidate information from resume</p>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resume Input</CardTitle>
-              <CardDescription>
-                Upload a resume file or paste the text below. The system will extract structured candidate data using LLM-based parsing.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* File Upload */}
-              <div className="space-y-2">
-                <Label htmlFor="file-upload">Upload File (Optional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                      id="file-upload"
-                      type="file"
-                      accept=".txt,.pdf,.docx"
-                      onChange={handleFileUpload}
-                      disabled={isProcessing || isExtracting}
-                  />
-                  <Button
-                      variant="outline"
-                      onClick={loadSampleResume}
-                      disabled={isProcessing || isExtracting}
-                  >
-                    Load Sample
-                  </Button>
-                </div>
-                {isExtracting && (
-                    <p className="text-sm text-blue-600 flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Extracting text from PDF...
-                    </p>
-                )}
-                {fileName && !isExtracting && (
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      {fileName}
-                    </p>
-                )}
-              </div>
-
-              {/* Source Link */}
-              <div className="space-y-2">
-                <Label htmlFor="source-link">Google Drive Source Link (Optional)</Label>
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resume Input</CardTitle>
+            <CardDescription>
+              Upload a resume file or paste the text below. The system will extract structured candidate data using LLM-based parsing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* File Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="file-upload">Upload File (Optional)</Label>
+              <div className="flex gap-2">
                 <Input
-                    id="source-link"
-                    type="url"
-                    placeholder="https://drive.google.com/..."
-                    value={sourceLink}
-                    onChange={(e) => setSourceLink(e.target.value)}
-                    disabled={isProcessing}
+                  id="file-upload"
+                  type="file"
+                  accept=".txt,.pdf,.docx"
+                  onChange={handleFileUpload}
+                  disabled={isProcessing || isExtracting}
                 />
+                <Button
+                  variant="outline"
+                  onClick={loadSampleResume}
+                  disabled={isProcessing || isExtracting}
+                >
+                  Load Sample
+                </Button>
               </div>
-
-              {/* Resume Text */}
-              <div className="space-y-2">
-                <Label htmlFor="resume-text">Resume Text</Label>
-                <Textarea
-                    id="resume-text"
-                    placeholder="Paste resume text here..."
-                    value={resumeText}
-                    onChange={(e) => setResumeText(e.target.value)}
-                    disabled={isProcessing}
-                    rows={15}
-                    className="font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500">
-                  {resumeText.length} characters
+              {isExtracting && (
+                <p className="text-sm text-blue-600 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Extracting text from PDF...
                 </p>
-              </div>
-
-              {/* Error */}
-              {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
               )}
-
-              {/* Progress */}
-              {isProcessing && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Processing resume...</span>
-                      <span className="font-medium">{progress}%</span>
-                    </div>
-                    <Progress value={progress} />
-                  </div>
+              {fileName && !isExtracting && (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  {fileName}
+                </p>
               )}
+            </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                    onClick={handleProcess}
-                    disabled={isProcessing || !resumeText.trim()}
-                    size="lg"
-                    className="flex-1"
-                >
-                  {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                  ) : (
-                      <>
-                        <Upload className="mr-2 h-5 w-5" />
-                        Process Resume
-                      </>
-                  )}
-                </Button>
-                <Button
-                    variant="outline"
-                    onClick={() => navigate('/')}
-                    disabled={isProcessing}
-                    size="lg"
-                >
-                  Cancel
-                </Button>
+            {/* Source Link */}
+            <div className="space-y-2">
+              <Label htmlFor="source-link">Google Drive Source Link (Optional)</Label>
+              <Input
+                id="source-link"
+                type="url"
+                placeholder="https://drive.google.com/..."
+                value={sourceLink}
+                onChange={(e) => setSourceLink(e.target.value)}
+                disabled={isProcessing}
+              />
+            </div>
+
+            {/* Resume Text */}
+            <div className="space-y-2">
+              <Label htmlFor="resume-text">Resume Text</Label>
+              <Textarea
+                id="resume-text"
+                placeholder="Paste resume text here..."
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                disabled={isProcessing}
+                rows={15}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500">
+                {resumeText.length} characters
+              </p>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Progress */}
+            {isProcessing && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Processing resume...</span>
+                  <span className="font-medium">{progress}%</span>
+                </div>
+                <Progress value={progress} />
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Info Card */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-base">How It Works</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-                <li>Resume text is converted to Markdown format for better structure</li>
-                <li>LLM extracts structured data matching the field definitions</li>
-                <li>Data is normalized (locations, emails, URLs)</li>
-                <li>Heuristic validation checks data quality</li>
-                <li>Records are flagged if required fields are missing or confidence is low</li>
-                <li>Results are ready for review and CSV export</li>
-              </ol>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleProcess}
+                disabled={isProcessing || !resumeText.trim()}
+                size="lg"
+                className="flex-1"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-5 w-5" />
+                    Process Resume
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/')}
+                disabled={isProcessing}
+                size="lg"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">How It Works</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+              <li>Resume text is converted to Markdown format for better structure</li>
+              <li>LLM extracts structured data matching the field definitions</li>
+              <li>Data is normalized (locations, emails, URLs)</li>
+              <li>Heuristic validation checks data quality</li>
+              <li>Records are flagged if required fields are missing or confidence is low</li>
+              <li>Results are ready for review and CSV export</li>
+            </ol>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }

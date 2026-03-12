@@ -30,5 +30,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  db_data:
-  uploads_data:
+  db_data: {}
+  uploads_data: {}
