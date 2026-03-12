@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 // ---- PDF fallback (works in Vite/WebStorm) ----
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
+import { uploadResumeResumesUploadPost } from '../../client';
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -85,66 +86,27 @@ export function UploadPage() {
       formData.append('resume_source_link', sourceLink.trim());
     }
 
-    const response = await fetch(`${API_BASE_URL}/resumes/temp-upload`, {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await uploadResumeResumesUploadPost({
+      body: {
+        file: file,
+      },
+    })
+    // const response = await fetch(`${API_BASE_URL}/resumes/temp-upload`, {
+    //   method: 'POST',
+    //   body: formData,
+    // });
 
-    if (!response.ok) {
+    if (!response.data) {
       throw new Error('Backend upload failed');
     }
 
-    const data = await response.json();
+    const data = response.data;
     const candidate = data.candidate;
 
     return {
-      id: String(candidate.id),
-      full_name: candidate.full_name || null,
-      email: candidate.email || null,
-      phone: candidate.phone || null,
-      linkedin_url: candidate.linkedin_url || null,
-      city: candidate.city || null,
-      state: candidate.state || null,
-      school: candidate.school || null,
-      degree: candidate.degree || null,
-      terminal_degree_year: candidate.terminal_degree_year || null,
-      current_job_title: candidate.current_job_title || null,
-      resume_source_link: candidate.resume_source_link || null,
-      needs_review: candidate.needs_review === 'YES' ? 'YES' : 'NO',
-      review_reason: candidate.review_reason || null,
-      skills: candidate.skills || null,
-      professional_summary: candidate.professional_summary || null,
-      latest_company: candidate.latest_company || null,
-      certifications: candidate.certifications || null,
-      portfolio_url: candidate.portfolio_url || null,
-      github_url: candidate.github_url || null,
-      academic_title: candidate.academic_title || null,
-      research_area: candidate.research_area || null,
-      publications_summary: candidate.publications_summary || null,
-      awards_summary: candidate.awards_summary || null,
-      years_experience_overall: toNumber(candidate.years_experience_overall),
-      years_experience_in_field: toNumber(candidate.years_experience_in_field),
-      title_seniority_signal: candidate.title_seniority_signal || null,
-      education_stage_signal: candidate.education_stage_signal || null,
-      career_level_overall: candidate.career_level_overall || null,
-      career_level_target_field: candidate.career_level_target_field || null,
-      career_level_confidence: candidate.career_level_confidence || null,
-      career_level_reason: candidate.career_level_reason || null,
-      resume_file_name: candidate.resume_file_name || null,
-      resume_file_type: normalizeFileType(candidate.resume_file_type),
-      resume_page_count: candidate.resume_page_count ?? null,
-      resume_text_quality: candidate.resume_text_quality || null,
-      parsed_char_count: candidate.parsed_char_count ?? null,
-      llm_input_char_count: candidate.llm_input_char_count ?? null,
-      fields_found_count: candidate.fields_found_count ?? null,
-      required_fields_found_count: candidate.required_fields_found_count ?? null,
-      required_fields_missing: parseJsonList(candidate.required_fields_missing),
-      extraction_confidence: candidate.extraction_confidence || null,
-      flag_reasons: parseJsonList(candidate.flag_reasons),
-      flag_details: candidate.flag_details || null,
-      state_full: candidate.state_full || null,
-      location_display: candidate.location_display || null,
-      extracted_at: candidate.created_at || new Date().toISOString(),
+      ...candidate,
+      flag_reasons: candidate.flag_reasons?.split(',') || null,
+      required_fields_missing: candidate.required_fields_missing?.split(',') || undefined,
     };
   };
 

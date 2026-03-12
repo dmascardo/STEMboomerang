@@ -11,7 +11,7 @@ from typing import Optional, List, Tuple, Dict, Any
 
 from processing.core import process_resume_file
 from utils.list_files import print_directory_tree
-from response_types import UploadResponse, CandidateOut, ResumeOut, BatchUploadResponse
+from response_types import UploadResponse, CandidateOut, ResumeOut, BatchUploadResponse, CandidateUpdate
 from models import CandidateDB, ResumeDB, Base
 from constants import BASE_DIR, DB_PATH, UPLOADS_DIR, DATABASE_URL
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
@@ -281,3 +281,19 @@ def batch_upload_resumes(
         results.append(process_resume_file(file=f, db=db, overrides=overrides))
 
     return BatchUploadResponse(results=results)
+
+@app.post("/candidates/update", response_model=CandidateOut)
+def update_candidate(
+    id: int,
+    candidate: CandidateUpdate,
+    db: Session = Depends(get_db),
+) -> CandidateOut:
+    candidate = db.get(CandidateDB, id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    for field, value in candidate.model_dump().items():
+        setattr(candidate, field, value)
+    db.commit()
+    db.refresh(candidate)
+    return candidate

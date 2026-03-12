@@ -47,6 +47,7 @@ dependencies = [
     { name = "openai" },
     { name = "pdfplumber" },
     { name = "pydantic" },
+    { name = "pydantic-partial" },
     { name = "pypdf" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
@@ -61,6 +62,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2.26.0" },
     { name = "pdfplumber", specifier = ">=0.11.9" },
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-partial", specifier = ">=0.10.2" },
     { name = "pypdf", specifier = ">=6.8.0" },
     { name = "python-multipart", specifier = ">=0.0.22" },
     { name = "sqlalchemy", specifier = ">=2.0.48" },
@@ -902,6 +904,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fd/35/2fee58b1316a73e025728583d3b1447218a97e621933fc776fb8c0f2ebdd/pydantic_extra_types-2.11.0.tar.gz", hash = "sha256:4e9991959d045b75feb775683437a97991d02c138e00b59176571db9ce634f0e", size = 157226, upload-time = "2025-12-31T16:18:27.944Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/17/fabd56da47096d240dd45ba627bead0333b0cf0ee8ada9bec579287dadf3/pydantic_extra_types-2.11.0-py3-none-any.whl", hash = "sha256:84b864d250a0fc62535b7ec591e36f2c5b4d1325fa0017eb8cda9aeb63b374a6", size = 74296, upload-time = "2025-12-31T16:18:26.38Z" },
+]
+
+[[package]]
+name = "pydantic-partial"
+version = "0.10.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/99/6d9b16dd997ac6ae25d0c543325d5a444a6226b007efd7e9ddee41e2d62a/pydantic_partial-0.10.2.tar.gz", hash = "sha256:8dbfc9843c8ca854c56c368a276e2a61d9f65beefd1deee5c4dd8ed7d74435fd", size = 5794, upload-time = "2026-02-14T16:55:03.611Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/94/86baf7016637f254fe990c282d9d08a531e9fc5aa4b290c1b332fca4dd84/pydantic_partial-0.10.2-py3-none-any.whl", hash = "sha256:8fdb3f270740a88617e8e40dfbb3cce484502e48b1b5d3e8a6a311adfe33e016", size = 7299, upload-time = "2026-02-14T16:55:04.224Z" },
 ]
 
 [[package]]

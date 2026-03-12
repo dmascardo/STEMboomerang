@@ -13,9 +13,9 @@ export function ReviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getCandidate, updateCandidate } = useCandidates();
-  
-  const candidate = id ? getCandidate(id) : undefined;
-  
+
+  const candidate = id ? getCandidate(Number(id)) : undefined;
+
   if (!candidate) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -34,7 +34,7 @@ export function ReviewPage() {
       </div>
     );
   }
-  
+
   const handleExport = () => {
     downloadCSV([candidate], `candidate-${candidate.id}.csv`);
   };
@@ -45,7 +45,7 @@ export function ReviewPage() {
     const parsed = Number.parseInt(trimmed, 10);
     return Number.isFinite(parsed) ? parsed : null;
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -70,7 +70,7 @@ export function ReviewPage() {
           </div>
         </div>
       </header>
-      
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Status Banner */}
@@ -94,7 +94,7 @@ export function ReviewPage() {
             </CardContent>
           </Card>
         )}
-        
+
         {candidate.needs_review === 'NO' && (
           <Card className="mb-6 border-green-200 bg-green-50">
             <CardContent className="pt-6">
@@ -108,7 +108,7 @@ export function ReviewPage() {
             </CardContent>
           </Card>
         )}
-        
+
         <Tabs defaultValue="core" className="space-y-6">
           <TabsList>
             <TabsTrigger value="core">Core Information</TabsTrigger>
@@ -116,7 +116,7 @@ export function ReviewPage() {
             <TabsTrigger value="career">Career Analysis</TabsTrigger>
             <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
           </TabsList>
-          
+
           {/* Core Information Tab */}
           <TabsContent value="core" className="space-y-6">
             <Card>
@@ -207,7 +207,7 @@ export function ReviewPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Optional Fields Tab */}
           <TabsContent value="optional" className="space-y-6">
             <Card>
@@ -238,9 +238,9 @@ export function ReviewPage() {
                     fieldKey="certifications"
                     onUpdate={(value) => updateCandidate(candidate.id, { certifications: value })}
                   />
-                  
+
                   <Separator />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FieldDisplay
                       label="Portfolio URL"
@@ -258,7 +258,7 @@ export function ReviewPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Academic & Research Context</CardTitle>
@@ -298,7 +298,7 @@ export function ReviewPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Career Analysis Tab */}
           <TabsContent value="career" className="space-y-6">
             <Card>
@@ -335,7 +335,7 @@ export function ReviewPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label>Confidence</Label>
                       {!candidate.career_level_confidence && (
@@ -360,8 +360,8 @@ export function ReviewPage() {
                               candidate.career_level_confidence === 'High'
                                 ? 'bg-green-50 text-green-700 border-green-200'
                                 : candidate.career_level_confidence === 'Medium'
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
+                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                  : 'bg-red-50 text-red-700 border-red-200'
                             }
                           >
                             {candidate.career_level_confidence}
@@ -371,7 +371,7 @@ export function ReviewPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label>Years Experience</Label>
                       {!candidate.years_experience_overall && (
@@ -393,9 +393,9 @@ export function ReviewPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FieldDisplay
                       label="Title Seniority Signal"
@@ -423,7 +423,7 @@ export function ReviewPage() {
                       onUpdate={(value) => updateCandidate(candidate.id, { career_level_target_field: value })}
                     />
                   </div>
-                  
+
                   <FieldDisplay
                     label="Analysis Reason"
                     value={candidate.career_level_reason}
@@ -434,7 +434,7 @@ export function ReviewPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Quality Metrics Tab */}
           <TabsContent value="quality" className="space-y-6">
             <Card>
@@ -462,9 +462,9 @@ export function ReviewPage() {
                       value={`${candidate.required_fields_found_count} / 10`}
                     />
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <Label>Extraction Confidence</Label>
@@ -476,8 +476,8 @@ export function ReviewPage() {
                               candidate.extraction_confidence === 'High'
                                 ? 'bg-green-50 text-green-700 border-green-200'
                                 : candidate.extraction_confidence === 'Medium'
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
+                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                  : 'bg-red-50 text-red-700 border-red-200'
                             }
                           >
                             {candidate.extraction_confidence}
@@ -487,7 +487,7 @@ export function ReviewPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label>Resume Text Quality</Label>
                       <div className="mt-2">
@@ -498,8 +498,8 @@ export function ReviewPage() {
                               candidate.resume_text_quality === 'High'
                                 ? 'bg-green-50 text-green-700 border-green-200'
                                 : candidate.resume_text_quality === 'Medium'
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
+                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                  : 'bg-red-50 text-red-700 border-red-200'
                             }
                           >
                             {candidate.resume_text_quality}
@@ -509,7 +509,7 @@ export function ReviewPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label>Review Status</Label>
                       <div className="mt-2">
@@ -526,9 +526,9 @@ export function ReviewPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {candidate.required_fields_missing && candidate.required_fields_missing.length > 0 && (
                     <div>
                       <Label>Missing Required Fields</Label>
@@ -541,7 +541,7 @@ export function ReviewPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FieldDisplay label="Resume File Name" value={candidate.resume_file_name} />
                     <FieldDisplay label="File Type" value={candidate.resume_file_type} />
@@ -579,7 +579,7 @@ function FieldDisplay({
 }) {
   const displayValue = value || '—';
   const isEmpty = !value;
-  
+
   return (
     <div className={fullWidth ? 'col-span-full' : ''}>
       <Label className="flex items-center gap-2">

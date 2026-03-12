@@ -1,11 +1,14 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from pydantic_partial import PartialModelMixin
+
+
 
 # =========================================================
 # Response Schemas
 # =========================================================
-class CandidateOut(BaseModel):
+class CandidateOut(PartialModelMixin, BaseModel):
     id: int
 
     full_name: Optional[str] = None
@@ -95,3 +98,6 @@ class UploadResponse(BaseModel):
 class BatchUploadResponse(BaseModel):
     results: List[UploadResponse]
 
+
+
+CandidateUpdate = CandidateOut.model_as_partial()
