@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "gen:client": "npx @hey-api/openapi-ts -i http://localhost:8000/openapi.json -o src/client"
+    "gen:client": "npx @hey-api/openapi-ts -i http://localhost:8000/openapi.json -o src/client",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.6",

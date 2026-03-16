@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
+from utils.conversions import candidate_db_to_out
+
 
 # Optional (recommended): load OPENAI_API_KEY from backend/.env
 try:
@@ -190,20 +192,22 @@ def debug_paths() -> dict:
 
 
 @app.get("/candidates", response_model=List[CandidateOut])
-def list_candidates(db: Session = Depends(get_db)) -> List[CandidateDB]:
-    return db.query(CandidateDB).order_by(CandidateDB.id.desc()).all()
+def list_candidates(db: Session = Depends(get_db)) -> List[CandidateOut]:
+    rows = db.query(CandidateDB).order_by(CandidateDB.id.desc()).all()
+    return [candidate_db_to_out(row) for row in rows]
+    # return db.query(CandidateDB).order_by(CandidateDB.id.desc()).all()
 
 
 @app.get("/candidates/{candidate_id}", response_model=CandidateOut)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db)) -> CandidateDB:
+def get_candidate(candidate_id: int, db: Session = Depends(get_db)) -> CandidateOut:
     row = db.get(CandidateDB, candidate_id)
     if not row:
         raise HTTPException(status_code=404, detail="Candidate not found")
-    return row
+    return candidate_db_to_out(row)
 
 
 @app.get("/resumes", response_model=List[ResumeOut])
-def list_resumes(db: Session = Depends(get_db)) -> List[ResumeDB]:
+def list_resumes(db: Session = Depends(get_db)) -> List[ResumeOut]:
     return db.query(ResumeDB).order_by(ResumeDB.id.desc()).all()
 
 
@@ -288,7 +292,7 @@ def batch_upload_resumes(
 @app.post("/candidates/update", response_model=CandidateOut)
 def update_candidate(
     id: int,
-    candidate: CandidateUpdate,
+    candidate: CandidateUpdate, 
     db: Session = Depends(get_db),
 ) -> CandidateOut:
     candidate = db.get(CandidateDB, id)
@@ -299,4 +303,4 @@ def update_candidate(
         setattr(candidate, field, value)
     db.commit()
     db.refresh(candidate)
-    return candidate
+    return candidate_db_to_out(candidate)

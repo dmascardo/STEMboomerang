@@ -307,7 +307,7 @@ export type CandidateOut = {
     /**
      * Required Fields Missing
      */
-    required_fields_missing?: string | null;
+    required_fields_missing?: Array<string>;
     /**
      * Extraction Confidence
      */
@@ -315,7 +315,7 @@ export type CandidateOut = {
     /**
      * Flag Reasons
      */
-    flag_reasons?: string | null;
+    flag_reasons?: Array<string>;
     /**
      * Flag Details
      */
@@ -505,7 +505,7 @@ export type CandidateOutPartial = {
     /**
      * Required Fields Missing
      */
-    required_fields_missing?: string | null;
+    required_fields_missing?: Array<string>;
     /**
      * Extraction Confidence
      */
@@ -513,7 +513,7 @@ export type CandidateOutPartial = {
     /**
      * Flag Reasons
      */
-    flag_reasons?: string | null;
+    flag_reasons?: Array<string>;
     /**
      * Flag Details
      */
