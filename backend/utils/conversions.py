@@ -1,16 +1,34 @@
+import json
+from typing import Any
+
 from models import CandidateDB
 from response_types import CandidateOut, CandidateUpdate
 
 
+def _decode_list(value: Any) -> list[str]:
+    if not value:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        except Exception:
+            return [item.strip() for item in value.split(",") if item.strip()]
+    return []
+
+
 def candidate_db_to_out(candidate: type[CandidateDB]) -> CandidateOut:
-    data: type[CandidateOut] = {
+    data = {
         **candidate.model_dump(),
-        "flag_reasons": candidate.flag_reasons.split(",") if candidate.flag_reasons else [],
-        "required_fields_missing": candidate.required_fields_missing.split(",") if candidate.required_fields_missing else [],
+        "flag_reasons": _decode_list(candidate.flag_reasons),
+        "required_fields_missing": _decode_list(candidate.required_fields_missing),
         "years_experience_overall": int(candidate.years_experience_overall) if candidate.years_experience_overall else None,
         "years_experience_in_field": int(candidate.years_experience_in_field) if candidate.years_experience_in_field else None,
-    }    
-    return CandidateOut(data)
+    }
+    return CandidateOut(**data)
 
 # def candidate_update_to_db(candidate: CandidateUpdate) -> CandidateDB:
 #     data = {

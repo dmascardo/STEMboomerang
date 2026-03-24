@@ -40,6 +40,7 @@ from processing.heuristics import (
 )
 from response_types import UploadResponse
 from constants import UPLOADS_DIR
+from utils.conversions import candidate_db_to_out
 
 
 # =========================================================
@@ -78,7 +79,7 @@ def process_resume_file(
                 },
             )
         return UploadResponse(
-            candidate=existing_candidate,
+            candidate=candidate_db_to_out(existing_candidate),
             resume=existing_resume,
             duplicate=True,
             duplicate_type="exact",
@@ -143,7 +144,7 @@ def process_resume_file(
                     },
                 )
             return UploadResponse(
-                candidate=existing_candidate,
+                candidate=candidate_db_to_out(existing_candidate),
                 resume=existing_text_resume,
                 duplicate=True,
                 duplicate_type="content",
@@ -382,7 +383,7 @@ def process_resume_file(
             )
             if existing_candidate:
                 return UploadResponse(
-                    candidate=existing_candidate,
+                    candidate=candidate_db_to_out(existing_candidate),
                     resume=existing_resume,
                     duplicate=True,
                     duplicate_type=duplicate_type,
@@ -393,5 +394,8 @@ def process_resume_file(
     db.refresh(resume_row)
 
     return UploadResponse(
-        candidate=candidate, resume=resume_row, duplicate=False, duplicate_type=None
+        candidate=candidate_db_to_out(candidate),
+        resume=resume_row,
+        duplicate=False,
+        duplicate_type=None,
     )
