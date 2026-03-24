@@ -83,6 +83,7 @@ Use `.env` (copied from `.env.example`) for secrets/config:
 ## Railway Deployment
 - This repo now includes a root `Dockerfile` for a single Railway service.
 - That container serves the frontend and proxies `/api/*` requests to the FastAPI backend internally.
+- The public web server binds to Railway's injected `PORT` variable.
 - Railway should build from the repo root and expose the service on its default public domain.
 - Set these Railway variables:
   - `OPENAI_API_KEY`
