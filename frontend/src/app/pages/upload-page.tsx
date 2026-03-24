@@ -114,11 +114,16 @@ export function UploadPage() {
 
     const data = await response.json();
     const candidate = data.candidate;
+    const normalizeStringList = (value: string[] | string | null | undefined): string[] | undefined => {
+      if (!value) return undefined;
+      if (Array.isArray(value)) return value;
+      return value.split(',').map(item => item.trim()).filter(Boolean);
+    };
 
     return {
       ...candidate,
-      flag_reasons: candidate.flag_reasons?.split(',') || null,
-      required_fields_missing: candidate.required_fields_missing?.split(',') || undefined,
+      flag_reasons: normalizeStringList(candidate.flag_reasons) || null,
+      required_fields_missing: normalizeStringList(candidate.required_fields_missing),
     };
   };
 
