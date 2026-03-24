@@ -17,9 +17,9 @@ import { toast } from 'sonner';
 // ---- PDF fallback (works in Vite/WebStorm) ----
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
-import { uploadResumeResumesUploadPost } from '../../client';
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function extractTextFromPdfFallback(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
@@ -85,21 +85,25 @@ export function UploadPage() {
       formData.append('resume_source_link', sourceLink.trim());
     }
 
-    const response = await uploadResumeResumesUploadPost({
-      body: {
-        file: file,
-      },
-    })
-    // const response = await fetch(`${API_BASE_URL}/resumes/temp-upload`, {
-    //   method: 'POST',
-    //   body: formData,
-    // });
+    const response = await fetch(`${API_BASE_URL}/resumes/upload`, {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (!response.data) {
-      throw new Error('Backend upload failed');
+    if (!response.ok) {
+      let detail = 'Backend upload failed';
+      try {
+        const errorData = await response.json();
+        if (typeof errorData?.detail === 'string') {
+          detail = errorData.detail;
+        }
+      } catch {
+        // Keep the fallback message if the error body is not JSON.
+      }
+      throw new Error(detail);
     }
 
-    const data = response.data;
+    const data = await response.json();
     const candidate = data.candidate;
 
     return {
