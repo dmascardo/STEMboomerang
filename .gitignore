@@ -22,6 +22,7 @@ backend/.env.*
 # Local backend data
 backend/candidates.db
 backend/uploads/
+!backend/uploads/.gitkeep
 
 # Frontend (Vite/Node)
 frontend/node_modules/
