@@ -78,11 +78,20 @@ export function UploadPage() {
     return null;
   };
 
+  const extractEmail = (value: string): string | null => {
+    const match = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    return match ? match[0].trim().toLowerCase() : null;
+  };
+
   const uploadToBackend = async (file: File): Promise<CandidateRecord> => {
     const formData = new FormData();
     formData.append('file', file);
     if (sourceLink.trim()) {
       formData.append('resume_source_link', sourceLink.trim());
+    }
+    const extractedEmail = extractEmail(resumeText);
+    if (extractedEmail) {
+      formData.append('email', extractedEmail);
     }
 
     const response = await fetch(`${API_BASE_URL}/resumes/upload`, {
