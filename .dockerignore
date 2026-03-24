@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+.vite
+.env
+backend/.env
+backend/.venv
+backend/__pycache__
+backend/uploads
+backend/candidates.db
+frontend/node_modules
+frontend/dist
