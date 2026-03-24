@@ -13,6 +13,18 @@ interface CandidatesContextType {
 
 const CandidatesContext = createContext<CandidatesContextType | undefined>(undefined);
 
+const normalizeStringList = (value: string[] | string | null | undefined): string[] | undefined => {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value;
+  return value.split(',').map(item => item.trim()).filter(Boolean);
+};
+
+const toCandidateRecord = (candidate: any): CandidateRecord => ({
+  ...candidate,
+  flag_reasons: normalizeStringList(candidate.flag_reasons) || null,
+  required_fields_missing: normalizeStringList(candidate.required_fields_missing),
+});
+
 export function CandidatesProvider({ children }: { children: ReactNode }) {
   const [candidates, setCandidates] = useState<CandidateRecord[]>([]);
 
@@ -21,11 +33,7 @@ export function CandidatesProvider({ children }: { children: ReactNode }) {
     if (!response.data) {
       return;
     }
-    const res: CandidateRecord[] = response.data.map(candidate => ({
-      ...candidate,
-      flag_reasons: candidate.flag_reasons?.split(',') || null,
-      required_fields_missing: candidate.required_fields_missing?.split(',') || undefined,
-    }));
+    const res: CandidateRecord[] = response.data.map(toCandidateRecord);
     setCandidates(res);
   };
 
@@ -79,7 +87,7 @@ export function CandidatesProvider({ children }: { children: ReactNode }) {
   };
 
   const addCandidate = (candidate: CandidateRecord) => {
-    setCandidates(prev => [...prev, candidate]);
+    setCandidates(prev => [...prev, toCandidateRecord(candidate)]);
   };
 
   const updateCandidate = (id: number, updates: Partial<CandidateRecord>) => {
@@ -103,8 +111,8 @@ export function CandidatesProvider({ children }: { children: ReactNode }) {
         id,
 
         ...updates,
-        required_fields_missing: updates.required_fields_missing?.join(',') || undefined,
-        flag_reasons: updates.flag_reasons?.join(',') || undefined,
+        required_fields_missing: updates.required_fields_missing,
+        flag_reasons: updates.flag_reasons,
       },
       query: {
         id,
