@@ -5,6 +5,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    location ~* \.mjs$ {
+        default_type application/javascript;
+        try_files $uri =404;
+    }
+
     location = /api {
         return 307 /api/;
     }
