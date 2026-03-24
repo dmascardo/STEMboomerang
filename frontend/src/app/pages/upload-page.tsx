@@ -149,10 +149,10 @@ export function UploadPage() {
           } catch (fallbackError) {
             console.error('PDF extraction failed (fallback):', fallbackError);
             setError(
-              'Failed to extract text from this PDF. Please try a different PDF, or copy/paste the resume text. ' +
+              'Preview extraction failed for this PDF. You can still submit the file to the backend, or paste the resume text manually. ' +
               'Tip: scanned/image-only PDFs may require OCR.'
             );
-            toast.error('PDF extraction failed');
+            toast.error('PDF preview extraction failed');
             setIsExtracting(false);
             return;
           }
@@ -382,7 +382,7 @@ AWS Certified Developer - Associate (2022)`;
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={handleProcess}
-                disabled={isProcessing || !resumeText.trim()}
+                disabled={isProcessing || (!uploadedFile && !resumeText.trim())}
                 size="lg"
                 className="flex-1"
               >
