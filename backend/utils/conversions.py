@@ -21,8 +21,12 @@ def _decode_list(value: Any) -> list[str]:
 
 
 def candidate_db_to_out(candidate: type[CandidateDB]) -> CandidateOut:
+    base_data = {
+        column.name: getattr(candidate, column.name)
+        for column in CandidateDB.__table__.columns
+    }
     data = {
-        **candidate.model_dump(),
+        **base_data,
         "flag_reasons": _decode_list(candidate.flag_reasons),
         "required_fields_missing": _decode_list(candidate.required_fields_missing),
         "years_experience_overall": int(candidate.years_experience_overall) if candidate.years_experience_overall else None,
