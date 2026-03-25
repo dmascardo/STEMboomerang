@@ -181,14 +181,26 @@ def get_db() -> Session:
 
 def ensure_test_user() -> None:
     with SessionLocal() as db:
-        existing_user = db.query(UserDB).filter(UserDB.username == "denise").first()
-        if existing_user:
-            if existing_user.password != "denise":
-                existing_user.password = "denise"
-                db.commit()
+        seed_users = [
+            ("denise", "denise"),
+            ("mon1ca.sb", "sb2604!"),
+        ]
+        changed = False
+
+        for username, password in seed_users:
+            existing_user = db.query(UserDB).filter(UserDB.username == username).first()
+            if existing_user:
+                if existing_user.password != password:
+                    existing_user.password = password
+                    changed = True
+                continue
+
+            db.add(UserDB(username=username, password=password))
+            changed = True
+
+        if not changed:
             return
 
-        db.add(UserDB(username="denise", password="denise"))
         db.commit()
 
 
