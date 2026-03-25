@@ -20,6 +20,18 @@ def _decode_list(value: Any) -> list[str]:
     return []
 
 
+def _decode_text(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        parsed = json.loads(value)
+    except Exception:
+        return value
+    if isinstance(parsed, list):
+        return "; ".join(str(item) for item in parsed if item is not None)
+    return value
+
+
 def candidate_db_to_out(candidate: type[CandidateDB]) -> CandidateOut:
     base_data = {
         column.name: getattr(candidate, column.name)
@@ -27,6 +39,16 @@ def candidate_db_to_out(candidate: type[CandidateDB]) -> CandidateOut:
     }
     data = {
         **base_data,
+        "full_name": _decode_text(candidate.full_name),
+        "phone": _decode_text(candidate.phone),
+        "linkedin_url": _decode_text(candidate.linkedin_url),
+        "city": _decode_text(candidate.city),
+        "state": _decode_text(candidate.state),
+        "school": _decode_text(candidate.school),
+        "degree": _decode_text(candidate.degree),
+        "terminal_degree_year": _decode_text(candidate.terminal_degree_year),
+        "current_job_title": _decode_text(candidate.current_job_title),
+        "resume_source_link": _decode_text(candidate.resume_source_link),
         "flag_reasons": _decode_list(candidate.flag_reasons),
         "required_fields_missing": _decode_list(candidate.required_fields_missing),
         "years_experience_overall": int(candidate.years_experience_overall) if candidate.years_experience_overall else None,

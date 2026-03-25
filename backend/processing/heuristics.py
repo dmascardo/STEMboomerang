@@ -1,6 +1,6 @@
 from datetime import datetime
 import re
-from typing import List, Optional, Tuple, Dict
+from typing import Any, List, Optional, Tuple, Dict
 from utils.helpers import title_case_words
 
 
@@ -320,9 +320,18 @@ def derive_career_level_signals(
     degree_text: Optional[str],
     resume_text: str,
 ) -> Dict[str, Optional[str]]:
-    title = (current_job_title or "").lower()
-    deg = (degree_text or "").lower()
-    text = (resume_text or "").lower()
+    def _coerce_text(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, list):
+            return " ".join(str(item) for item in value if item is not None).strip()
+        if isinstance(value, dict):
+            return " ".join(f"{key} {val}" for key, val in value.items()).strip()
+        return str(value).strip()
+
+    title = _coerce_text(current_job_title).lower()
+    deg = _coerce_text(degree_text).lower()
+    text = _coerce_text(resume_text).lower()
 
     title_signal = None
     for k, label in SENIORITY_ORDER:

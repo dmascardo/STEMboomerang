@@ -230,12 +230,8 @@ def process_resume_file(
     extracted = normalize_fields(extracted)
 
     if not extracted.get("email"):
-        if saved_path.exists():
-            try:
-                saved_path.unlink()
-            except Exception:
-                pass
-        raise HTTPException(status_code=400, detail="Email is required")
+        extracted["email"] = f"missing-email-{content_sha256[:12]}@placeholder.local"
+        extracted["_missing_email_placeholder"] = True
 
     quality = compute_flags(extracted, resume_text_quality)
 
@@ -251,19 +247,20 @@ def process_resume_file(
         extracted[k] = to_db_text(extracted.get(k))
 
     extracted.pop("_conflicting_emails", None)
+    extracted.pop("_missing_email_placeholder", None)
 
     candidate_values = dict(
-        full_name=extracted.get("full_name"),
+        full_name=to_db_text(extracted.get("full_name")),
         email=extracted.get("email"),
-        phone=extracted.get("phone"),
-        linkedin_url=extracted.get("linkedin_url"),
-        city=extracted.get("city"),
-        state=extracted.get("state"),
-        school=extracted.get("school"),
-        degree=extracted.get("degree"),
-        terminal_degree_year=extracted.get("terminal_degree_year"),
-        current_job_title=extracted.get("current_job_title"),
-        resume_source_link=extracted.get("resume_source_link"),
+        phone=to_db_text(extracted.get("phone")),
+        linkedin_url=to_db_text(extracted.get("linkedin_url")),
+        city=to_db_text(extracted.get("city")),
+        state=to_db_text(extracted.get("state")),
+        school=to_db_text(extracted.get("school")),
+        degree=to_db_text(extracted.get("degree")),
+        terminal_degree_year=to_db_text(extracted.get("terminal_degree_year")),
+        current_job_title=to_db_text(extracted.get("current_job_title")),
+        resume_source_link=to_db_text(extracted.get("resume_source_link")),
         skills=to_db_text(extracted.get("skills")),
         professional_summary=to_db_text(extracted.get("professional_summary")),
         latest_company=to_db_text(extracted.get("latest_company")),

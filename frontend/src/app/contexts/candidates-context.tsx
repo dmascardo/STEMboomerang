@@ -1,17 +1,19 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CandidateRecord, REQUIRED_FIELDS } from '../types/candidate';
 import { normalizeEmail, normalizeLocation, normalizeName, normalizeURL } from '../utils/normalization';
-import { listCandidatesCandidatesGet, updateCandidateCandidatesUpdatePost } from '../../client';
+import { listCandidatesCandidatesGet } from '../../client';
 
 interface CandidatesContextType {
   candidates: CandidateRecord[];
   addCandidate: (candidate: CandidateRecord) => void;
-  updateCandidate: (id: number, updates: Partial<CandidateRecord>) => void;
+  updateCandidate: (id: number, updates: Partial<CandidateRecord>) => Promise<void>;
   getCandidate: (id: number) => CandidateRecord | undefined;
+  deleteCandidates: (ids: number[]) => Promise<void>;
   clearCandidates: () => void;
 }
 
 const CandidatesContext = createContext<CandidatesContextType | undefined>(undefined);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const normalizeStringList = (value: string[] | string | null | undefined): string[] | undefined => {
   if (!value) return undefined;
@@ -90,40 +92,85 @@ export function CandidatesProvider({ children }: { children: ReactNode }) {
     setCandidates(prev => [...prev, toCandidateRecord(candidate)]);
   };
 
-  const updateCandidate = (id: number, updates: Partial<CandidateRecord>) => {
-    // setCandidates(prev =>
-    //   prev.map(c => {
-    //     if (c.id !== id) return c;
-    //     const trimmedUpdates = Object.fromEntries(
-    //       Object.entries(updates).map(([key, value]) => {
-    //         if (typeof value !== 'string') return [key, value];
-    //         const trimmed = value.trim();
-    //         return [key, trimmed === '' ? null : trimmed];
-    //       })
-    //     ) as Partial<CandidateRecord>;
+  const updateCandidate = async (id: number, updates: Partial<CandidateRecord>) => {
+    const current = candidates.find((candidate) => candidate.id === id);
+    if (!current) {
+      return;
+    }
 
-    //     const merged = { ...c, ...trimmedUpdates } as CandidateRecord;
-    //     return recalculateMissingFields(normalizeEditedFields(merged));
-    //   })
-    // );
-    updateCandidateCandidatesUpdatePost({
-      body: {
-        id,
+    const trimmedUpdates = Object.fromEntries(
+      Object.entries(updates).map(([key, value]) => {
+        if (typeof value !== 'string') return [key, value];
+        const trimmed = value.trim();
+        return [key, trimmed === '' ? null : trimmed];
+      })
+    ) as Partial<CandidateRecord>;
 
-        ...updates,
-        required_fields_missing: updates.required_fields_missing,
-        flag_reasons: updates.flag_reasons,
+    const merged = { ...current, ...trimmedUpdates } as CandidateRecord;
+    const normalized = normalizeEditedFields(merged);
+    const recalculated = recalculateMissingFields(normalized);
+
+    const response = await fetch(`${API_BASE_URL}/candidates/update?id=${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      query: {
+      body: JSON.stringify({
         id,
-      },
+        ...recalculated,
+        required_fields_missing: recalculated.required_fields_missing ?? undefined,
+        flag_reasons: recalculated.flag_reasons ?? undefined,
+      }),
     });
 
-    fetchCandidates();
+    if (!response.ok) {
+      let detail = 'Failed to update candidate';
+      try {
+        const errorData = await response.json();
+        if (typeof errorData?.detail === 'string') {
+          detail = errorData.detail;
+        }
+      } catch {
+        // Keep fallback.
+      }
+      throw new Error(detail);
+    }
+
+    await fetchCandidates();
   };
 
   const getCandidate = (id: number) => {
     return candidates.find(c => c.id === id);
+  };
+
+  const deleteCandidates = async (ids: number[]) => {
+    const uniqueIds = Array.from(new Set(ids.filter((id) => id > 0)));
+    if (uniqueIds.length === 0) {
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/candidates/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ids: uniqueIds }),
+    });
+
+    if (!response.ok) {
+      let detail = 'Failed to delete candidates';
+      try {
+        const errorData = await response.json();
+        if (typeof errorData?.detail === 'string') {
+          detail = errorData.detail;
+        }
+      } catch {
+        // Keep fallback.
+      }
+      throw new Error(detail);
+    }
+
+    setCandidates((prev) => prev.filter((candidate) => !uniqueIds.includes(candidate.id)));
   };
 
   const clearCandidates = () => {
@@ -137,6 +184,7 @@ export function CandidatesProvider({ children }: { children: ReactNode }) {
         addCandidate,
         updateCandidate,
         getCandidate,
+        deleteCandidates,
         clearCandidates,
       }}
     >

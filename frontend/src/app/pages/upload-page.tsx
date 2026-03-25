@@ -9,10 +9,10 @@ import { Label } from '../components/ui/label';
 import { Progress } from '../components/ui/progress';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { ArrowLeft, Upload, FileText, AlertCircle, Loader2 } from 'lucide-react';
-import { extractCandidateData } from '../utils/llm-extraction';
 import { CandidateRecord } from '../types/candidate';
 import { extractTextFromPDF, isPDF } from '../utils/pdf-extractor';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/auth-context';
 
 // ---- PDF fallback (works in Vite/WebStorm) ----
 import * as pdfjsLib from 'pdfjs-dist';
@@ -39,9 +39,36 @@ async function extractTextFromPdfFallback(file: File): Promise<string> {
   return fullText.trim();
 }
 
+async function extractTextFromBackend(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/resumes/preview-text`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let detail = 'Preview extraction failed';
+    try {
+      const errorData = await response.json();
+      if (typeof errorData?.detail === 'string') {
+        detail = errorData.detail;
+      }
+    } catch {
+      // Keep fallback.
+    }
+    throw new Error(detail);
+  }
+
+  const data = await response.json();
+  return typeof data?.text === 'string' ? data.text : '';
+}
+
 export function UploadPage() {
   const navigate = useNavigate();
   const { addCandidate } = useCandidates();
+  const { logout } = useAuth();
 
   const [resumeText, setResumeText] = useState('');
   const [fileName, setFileName] = useState('');
@@ -132,25 +159,19 @@ export function UploadPage() {
     if (!file) return;
 
     const isDocx = file.name.toLowerCase().endsWith('.docx');
-    if (isDocx) {
-      setError('DOCX will be processed by the backend on submit. Preview is not available.');
-    }
 
     setFileName(file.name);
     setUploadedFile(file);
     setError('');
     setIsExtracting(true);
-    if (isDocx) {
-      setResumeText('');
-      setIsExtracting(false);
-      return;
-    }
 
     try {
       let text = '';
 
-      // Check if it's a PDF
-      if (isPDF(file)) {
+      if (isDocx) {
+        text = await extractTextFromBackend(file);
+        toast.success('DOCX text extracted successfully!');
+      } else if (isPDF(file)) {
         toast.info('Extracting text from PDF...');
 
         // Try your existing extractor first
@@ -176,15 +197,7 @@ export function UploadPage() {
           }
         }
       } else {
-        // For .txt files, read as text
-        text = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            resolve(event.target?.result as string);
-          };
-          reader.onerror = () => reject(new Error('Failed to read file'));
-          reader.readAsText(file);
-        });
+        text = await extractTextFromBackend(file);
       }
 
       setResumeText(text);
@@ -219,12 +232,12 @@ export function UploadPage() {
       if (uploadedFile) {
         candidate = await uploadToBackend(uploadedFile);
       } else {
-        candidate = await extractCandidateData({
-          text: resumeText,
-          fileName: fileName || undefined,
-          fileType: fileName.endsWith('.pdf') ? 'PDF' : fileName.endsWith('.docx') ? 'DOCX' : 'TXT',
-          sourceLink: sourceLink || undefined,
-        });
+        const textFile = new File(
+          [resumeText],
+          fileName || 'pasted_resume.txt',
+          { type: 'text/plain' }
+        );
+        candidate = await uploadToBackend(textFile);
       }
 
       setProgress(80);
@@ -243,7 +256,8 @@ export function UploadPage() {
       }, 500);
 
     } catch (err) {
-      setError('Failed to process resume. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to process resume. Please try again.';
+      setError(message);
       toast.error('Processing failed');
       console.error(err);
     } finally {
@@ -292,13 +306,26 @@ AWS Certified Developer - Associate (2022)`;
       {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Upload Resume</h1>
-              <p className="text-gray-600 mt-1">Extract candidate information from resume</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate('/')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Upload Resume</h1>
+                <p className="text-gray-600 mt-1">Extract candidate information from resume</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" onClick={() => navigate('/')}>
+                Cancel
+              </Button>
+              <Button variant="outline" onClick={() => {
+                logout();
+                navigate('/login');
+              }}>
+                Logout
+              </Button>
             </div>
           </div>
         </div>

@@ -80,6 +80,13 @@ def compute_flags(data: Dict[str, Any], resume_text_quality: str) -> Dict[str, A
         flags.append("conflicting_values")
         details.append("Multiple emails detected in resume text.")
 
+    if data.get("_missing_email_placeholder"):
+        if "email" not in missing:
+            missing.append("email")
+        if "missing_required_fields" not in flags:
+            flags.append("missing_required_fields")
+        details.append("Email could not be extracted; placeholder email was assigned.")
+
     found = count_populated_fields(data)
     required_found = len(LLM_REQUIRED_FIELDS) - len(missing)
 

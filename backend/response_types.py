@@ -98,6 +98,30 @@ class BatchUploadResponse(BaseModel):
     results: List[UploadResponse]
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    success: bool
+    username: str
+
+
+class CandidateDeleteRequest(BaseModel):
+    ids: List[int]
+
+
+class CandidateDeleteResponse(BaseModel):
+    deleted_count: int
+
+
+class ResumePreviewResponse(BaseModel):
+    text: str
+    file_type: str
+    page_count: int
+
+
 
 class CandidateUpdate(BaseModel):
     id: int

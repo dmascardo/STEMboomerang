@@ -127,3 +127,12 @@ class ResumeDB(Base):
     resume_text_quality = Column(String, nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class UserDB(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, nullable=False, index=True, unique=True)
+    password = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

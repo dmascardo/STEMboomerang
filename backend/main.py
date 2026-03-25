@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from typing import Optional, List
+from pathlib import Path
 
 from processing.core import process_resume_file
 from response_types import (
@@ -10,15 +12,22 @@ from response_types import (
     ResumeOut,
     BatchUploadResponse,
     CandidateUpdate,
+    LoginRequest,
+    LoginResponse,
+    CandidateDeleteRequest,
+    CandidateDeleteResponse,
+    ResumePreviewResponse,
 )
-from models import CandidateDB, ResumeDB, Base
+from models import CandidateDB, ResumeDB, UserDB, Base
 from constants import BASE_DIR, DB_PATH, UPLOADS_DIR, DATABASE_URL
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from utils.conversions import candidate_db_to_out
+from utils.helpers import to_db_text
+from utils.helpers import detect_file_type, extract_text_docx, extract_text_pdf, extract_text_txt, get_docx_page_count_estimate, get_pdf_page_count
 
 
 # Optional (recommended): load OPENAI_API_KEY from backend/.env
@@ -78,6 +87,7 @@ def on_startup() -> None:
     ensure_resume_dedupe_schema()
     ensure_candidate_email_unique_schema()
     ensure_candidate_email_not_null_schema()
+    ensure_test_user()
 
 
 def ensure_resume_dedupe_schema() -> None:
@@ -169,6 +179,19 @@ def get_db() -> Session:
         db.close()
 
 
+def ensure_test_user() -> None:
+    with SessionLocal() as db:
+        existing_user = db.query(UserDB).filter(UserDB.username == "denise").first()
+        if existing_user:
+            if existing_user.password != "denise":
+                existing_user.password = "denise"
+                db.commit()
+            return
+
+        db.add(UserDB(username="denise", password="denise"))
+        db.commit()
+
+
 # =========================================================
 # Routes
 # =========================================================
@@ -180,6 +203,18 @@ def root() -> dict:
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    user = db.query(UserDB).filter(UserDB.username == payload.username).first()
+    if not user or user.password != payload.password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    return LoginResponse(success=True, username=user.username)
 
 
 @app.get("/debug/paths")
@@ -206,6 +241,28 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db)) -> Candidate
     return candidate_db_to_out(row)
 
 
+@app.post("/candidates/delete", response_model=CandidateDeleteResponse)
+def delete_candidates(
+    payload: CandidateDeleteRequest,
+    db: Session = Depends(get_db),
+) -> CandidateDeleteResponse:
+    ids = sorted({candidate_id for candidate_id in payload.ids if candidate_id > 0})
+    if not ids:
+        raise HTTPException(status_code=400, detail="No candidate IDs provided")
+
+    resumes = db.query(ResumeDB).filter(ResumeDB.candidate_id.in_(ids)).all()
+    for resume in resumes:
+        db.delete(resume)
+
+    candidates = db.query(CandidateDB).filter(CandidateDB.id.in_(ids)).all()
+    deleted_count = len(candidates)
+    for candidate in candidates:
+        db.delete(candidate)
+
+    db.commit()
+    return CandidateDeleteResponse(deleted_count=deleted_count)
+
+
 @app.get("/resumes", response_model=List[ResumeOut])
 def list_resumes(db: Session = Depends(get_db)) -> List[ResumeOut]:
     return db.query(ResumeDB).order_by(ResumeDB.id.desc()).all()
@@ -218,6 +275,43 @@ def temp_upload_resume(
 ) -> UploadResponse:
     print(f"Temp upload resume: {file.filename}")
     return process_resume_file(file=file, db=db, overrides={})
+
+
+@app.post("/resumes/preview-text", response_model=ResumePreviewResponse)
+def preview_resume_text(file: UploadFile = File(...)) -> ResumePreviewResponse:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+
+    file_type = detect_file_type(file.filename)
+    file_bytes = file.file.read()
+
+    suffix = os.path.splitext(file.filename)[1] or ".tmp"
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_file.write(file_bytes)
+            temp_path = temp_file.name
+        temp_file_path = Path(temp_path)
+
+        if file_type == "pdf":
+            text = extract_text_pdf(temp_file_path)
+            page_count = get_pdf_page_count(temp_file_path)
+        elif file_type == "docx":
+            text = extract_text_docx(temp_file_path)
+            page_count = get_docx_page_count_estimate(text)
+        elif file_type == "txt":
+            text = extract_text_txt(temp_file_path)
+            page_count = get_docx_page_count_estimate(text)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        return ResumePreviewResponse(text=text, file_type=file_type, page_count=page_count)
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except Exception:
+                pass
 
 
 @app.post("/resumes/upload", response_model=UploadResponse)
@@ -246,30 +340,41 @@ def upload_resume(
     resume_source_link: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ) -> UploadResponse:
-    overrides = {
-        "full_name": full_name,
-        "email": email,
-        "phone": phone,
-        "linkedin_url": linkedin_url,
-        "city": city,
-        "state": state,
-        "school": school,
-        "degree": degree,
-        "terminal_degree_year": terminal_degree_year,
-        "current_job_title": current_job_title,
-        "latest_company": latest_company,
-        "skills": skills,
-        "certifications": certifications,
-        "professional_summary": professional_summary,
-        "portfolio_url": portfolio_url,
-        "github_url": github_url,
-        "academic_title": academic_title,
-        "research_area": research_area,
-        "publications_summary": publications_summary,
-        "awards_summary": awards_summary,
-        "resume_source_link": resume_source_link,
-    }
-    return process_resume_file(file=file, db=db, overrides=overrides)
+    try:
+        overrides = {
+            "full_name": full_name,
+            "email": email,
+            "phone": phone,
+            "linkedin_url": linkedin_url,
+            "city": city,
+            "state": state,
+            "school": school,
+            "degree": degree,
+            "terminal_degree_year": terminal_degree_year,
+            "current_job_title": current_job_title,
+            "latest_company": latest_company,
+            "skills": skills,
+            "certifications": certifications,
+            "professional_summary": professional_summary,
+            "portfolio_url": portfolio_url,
+            "github_url": github_url,
+            "academic_title": academic_title,
+            "research_area": research_area,
+            "publications_summary": publications_summary,
+            "awards_summary": awards_summary,
+            "resume_source_link": resume_source_link,
+        }
+        return process_resume_file(file=file, db=db, overrides=overrides)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Resume processing failed while extracting candidate details. "
+                f"Reason: {str(exc)}"
+            ),
+        ) from exc
 
 
 @app.post("/resumes/batch_upload", response_model=BatchUploadResponse)
@@ -292,15 +397,18 @@ def batch_upload_resumes(
 @app.post("/candidates/update", response_model=CandidateOut)
 def update_candidate(
     id: int,
-    candidate: CandidateUpdate, 
+    candidate: CandidateUpdate,
     db: Session = Depends(get_db),
 ) -> CandidateOut:
-    candidate = db.get(CandidateDB, id)
-    if not candidate:
+    candidate_row = db.get(CandidateDB, id)
+    if not candidate_row:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
-    for field, value in candidate.model_dump().items():
-        setattr(candidate, field, value)
+    for field, value in candidate.model_dump(exclude_unset=True).items():
+        if field == "id":
+            continue
+        setattr(candidate_row, field, to_db_text(value))
+
     db.commit()
-    db.refresh(candidate)
-    return candidate_db_to_out(candidate)
+    db.refresh(candidate_row)
+    return candidate_db_to_out(candidate_row)

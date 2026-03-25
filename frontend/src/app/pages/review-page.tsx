@@ -1,20 +1,34 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { ArrowLeft, AlertCircle, CheckCircle, Download, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { useCandidates } from '../contexts/candidates-context';
+import { useAuth } from '../contexts/auth-context';
+import { CandidateRecord } from '../types/candidate';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
-import { ArrowLeft, AlertCircle, CheckCircle, Download } from 'lucide-react';
-import { downloadCSV } from '../utils/csv-export';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { downloadCSV } from '../utils/csv-export';
 
 export function ReviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getCandidate, updateCandidate } = useCandidates();
+  const { logout } = useAuth();
+  const [draft, setDraft] = useState<Partial<CandidateRecord> | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const candidate = id ? getCandidate(Number(id)) : undefined;
+
+  useEffect(() => {
+    if (candidate) {
+      setDraft(candidate);
+    }
+  }, [candidate]);
 
   if (!candidate) {
     return (
@@ -35,8 +49,17 @@ export function ReviewPage() {
     );
   }
 
+  const form = draft ?? candidate;
+
   const handleExport = () => {
     downloadCSV([candidate], `candidate-${candidate.id}.csv`);
+  };
+
+  const handleDraftChange = <K extends keyof CandidateRecord>(field: K, value: CandidateRecord[K]) => {
+    setDraft((prev) => ({
+      ...(prev ?? candidate),
+      [field]: value,
+    }));
   };
 
   const parseOptionalNumber = (raw: string): number | null => {
@@ -46,9 +69,24 @@ export function ReviewPage() {
     return Number.isFinite(parsed) ? parsed : null;
   };
 
+  const handleSave = async () => {
+    if (!draft) return;
+
+    setIsSaving(true);
+    try {
+      await updateCandidate(candidate.id, draft);
+      toast.success('Candidate details saved');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save candidate details');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const createdAtLabel = new Date(candidate.created_at).toLocaleString();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
@@ -58,22 +96,32 @@ export function ReviewPage() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {candidate.full_name || 'Unnamed Candidate'}
+                  {form.full_name || 'Unnamed Candidate'}
                 </h1>
                 <p className="text-gray-600 mt-1">Candidate Record Details</p>
               </div>
             </div>
-            <Button onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+            <div className="flex gap-3">
+              <Button onClick={handleExport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => {
+                logout();
+                navigate('/login');
+              }}>
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Status Banner */}
         {candidate.needs_review === 'YES' && (
           <Card className="mb-6 border-orange-200 bg-orange-50">
             <CardContent className="pt-6">
@@ -117,7 +165,6 @@ export function ReviewPage() {
             <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
           </TabsList>
 
-          {/* Core Information Tab */}
           <TabsContent value="core" className="space-y-6">
             <Card>
               <CardHeader>
@@ -126,89 +173,23 @@ export function ReviewPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FieldDisplay
-                    label="Full Name"
-                    value={candidate.full_name}
-                    required
-                    fieldKey="full_name"
-                    onUpdate={(value) => updateCandidate(candidate.id, { full_name: value })}
-                  />
-                  <FieldDisplay
-                    label="Email"
-                    value={candidate.email}
-                    required
-                    fieldKey="email"
-                    onUpdate={(value) => updateCandidate(candidate.id, { email: value })}
-                  />
-                  <FieldDisplay
-                    label="Phone"
-                    value={candidate.phone}
-                    required
-                    fieldKey="phone"
-                    onUpdate={(value) => updateCandidate(candidate.id, { phone: value })}
-                  />
-                  <FieldDisplay
-                    label="LinkedIn URL"
-                    value={candidate.linkedin_url}
-                    required
-                    fieldKey="linkedin_url"
-                    onUpdate={(value) => updateCandidate(candidate.id, { linkedin_url: value })}
-                  />
-                  <FieldDisplay
-                    label="City"
-                    value={candidate.city}
-                    required
-                    fieldKey="city"
-                    onUpdate={(value) => updateCandidate(candidate.id, { city: value })}
-                  />
-                  <FieldDisplay
-                    label="State"
-                    value={candidate.state}
-                    required
-                    fieldKey="state"
-                    onUpdate={(value) => updateCandidate(candidate.id, { state: value })}
-                  />
-                  <FieldDisplay label="Location Display" value={candidate.location_display} />
-                  <FieldDisplay
-                    label="School"
-                    value={candidate.school}
-                    required
-                    fieldKey="school"
-                    onUpdate={(value) => updateCandidate(candidate.id, { school: value })}
-                  />
-                  <FieldDisplay
-                    label="Degree"
-                    value={candidate.degree}
-                    required
-                    fieldKey="degree"
-                    onUpdate={(value) => updateCandidate(candidate.id, { degree: value })}
-                  />
-                  <FieldDisplay
-                    label="Graduation Year"
-                    value={candidate.terminal_degree_year}
-                    required
-                    fieldKey="terminal_degree_year"
-                    onUpdate={(value) => updateCandidate(candidate.id, { terminal_degree_year: value })}
-                  />
-                  <FieldDisplay
-                    label="Current Job Title"
-                    value={candidate.current_job_title}
-                    required
-                    fieldKey="current_job_title"
-                    onUpdate={(value) => updateCandidate(candidate.id, { current_job_title: value })}
-                  />
-                  <FieldDisplay
-                    label="Latest Company"
-                    value={candidate.latest_company}
-                    fieldKey="latest_company"
-                    onUpdate={(value) => updateCandidate(candidate.id, { latest_company: value })}
-                  />
+                  <FieldDisplay label="Full Name" value={form.full_name} required onChange={(value) => handleDraftChange('full_name', value)} />
+                  <FieldDisplay label="Email" value={form.email} required onChange={(value) => handleDraftChange('email', value)} />
+                  <FieldDisplay label="Phone" value={form.phone} required onChange={(value) => handleDraftChange('phone', value)} />
+                  <FieldDisplay label="LinkedIn URL" value={form.linkedin_url} required onChange={(value) => handleDraftChange('linkedin_url', value)} />
+                  <FieldDisplay label="City" value={form.city} required onChange={(value) => handleDraftChange('city', value)} />
+                  <FieldDisplay label="State" value={form.state} required onChange={(value) => handleDraftChange('state', value)} />
+                  <FieldDisplay label="Location Display" value={form.location_display} readOnly />
+                  <FieldDisplay label="School" value={form.school} required onChange={(value) => handleDraftChange('school', value)} />
+                  <FieldDisplay label="Degree" value={form.degree} required onChange={(value) => handleDraftChange('degree', value)} />
+                  <FieldDisplay label="Graduation Year" value={form.terminal_degree_year} required onChange={(value) => handleDraftChange('terminal_degree_year', value)} />
+                  <FieldDisplay label="Current Job Title" value={form.current_job_title} required onChange={(value) => handleDraftChange('current_job_title', value)} />
+                  <FieldDisplay label="Latest Company" value={form.latest_company} onChange={(value) => handleDraftChange('latest_company', value)} />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Optional Fields Tab */}
           <TabsContent value="optional" className="space-y-6">
             <Card>
               <CardHeader>
@@ -217,43 +198,15 @@ export function ReviewPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <FieldDisplay
-                    label="Professional Summary"
-                    value={candidate.professional_summary}
-                    fullWidth
-                    fieldKey="professional_summary"
-                    onUpdate={(value) => updateCandidate(candidate.id, { professional_summary: value })}
-                  />
-                  <FieldDisplay
-                    label="Skills"
-                    value={candidate.skills}
-                    fullWidth
-                    fieldKey="skills"
-                    onUpdate={(value) => updateCandidate(candidate.id, { skills: value })}
-                  />
-                  <FieldDisplay
-                    label="Certifications"
-                    value={candidate.certifications}
-                    fullWidth
-                    fieldKey="certifications"
-                    onUpdate={(value) => updateCandidate(candidate.id, { certifications: value })}
-                  />
+                  <FieldDisplay label="Professional Summary" value={form.professional_summary} fullWidth multiline onChange={(value) => handleDraftChange('professional_summary', value)} />
+                  <FieldDisplay label="Skills" value={form.skills} fullWidth multiline onChange={(value) => handleDraftChange('skills', value)} />
+                  <FieldDisplay label="Certifications" value={form.certifications} fullWidth multiline onChange={(value) => handleDraftChange('certifications', value)} />
 
                   <Separator />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FieldDisplay
-                      label="Portfolio URL"
-                      value={candidate.portfolio_url}
-                      fieldKey="portfolio_url"
-                      onUpdate={(value) => updateCandidate(candidate.id, { portfolio_url: value })}
-                    />
-                    <FieldDisplay
-                      label="GitHub URL"
-                      value={candidate.github_url}
-                      fieldKey="github_url"
-                      onUpdate={(value) => updateCandidate(candidate.id, { github_url: value })}
-                    />
+                    <FieldDisplay label="Portfolio URL" value={form.portfolio_url} onChange={(value) => handleDraftChange('portfolio_url', value)} />
+                    <FieldDisplay label="GitHub URL" value={form.github_url} onChange={(value) => handleDraftChange('github_url', value)} />
                   </div>
                 </div>
               </CardContent>
@@ -267,39 +220,16 @@ export function ReviewPage() {
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FieldDisplay
-                      label="Academic Title"
-                      value={candidate.academic_title}
-                      fieldKey="academic_title"
-                      onUpdate={(value) => updateCandidate(candidate.id, { academic_title: value })}
-                    />
-                    <FieldDisplay
-                      label="Research Area"
-                      value={candidate.research_area}
-                      fieldKey="research_area"
-                      onUpdate={(value) => updateCandidate(candidate.id, { research_area: value })}
-                    />
+                    <FieldDisplay label="Academic Title" value={form.academic_title} onChange={(value) => handleDraftChange('academic_title', value)} />
+                    <FieldDisplay label="Research Area" value={form.research_area} onChange={(value) => handleDraftChange('research_area', value)} />
                   </div>
-                  <FieldDisplay
-                    label="Publications Summary"
-                    value={candidate.publications_summary}
-                    fullWidth
-                    fieldKey="publications_summary"
-                    onUpdate={(value) => updateCandidate(candidate.id, { publications_summary: value })}
-                  />
-                  <FieldDisplay
-                    label="Awards Summary"
-                    value={candidate.awards_summary}
-                    fullWidth
-                    fieldKey="awards_summary"
-                    onUpdate={(value) => updateCandidate(candidate.id, { awards_summary: value })}
-                  />
+                  <FieldDisplay label="Publications Summary" value={form.publications_summary} fullWidth multiline onChange={(value) => handleDraftChange('publications_summary', value)} />
+                  <FieldDisplay label="Awards Summary" value={form.awards_summary} fullWidth multiline onChange={(value) => handleDraftChange('awards_summary', value)} />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Career Analysis Tab */}
           <TabsContent value="career" className="space-y-6">
             <Card>
               <CardHeader>
@@ -309,133 +239,34 @@ export function ReviewPage() {
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <Label>Overall Career Level</Label>
-                      {!candidate.career_level_overall && (
-                        <div className="mt-2">
-                          <Input
-                            aria-label="Overall Career Level"
-                            placeholder="Enter overall career level"
-                            onBlur={(event) => {
-                              const next = event.target.value.trim();
-                              if (!next) return;
-                              updateCandidate(candidate.id, { career_level_overall: next as any });
-                              event.target.value = '';
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="mt-2">
-                        {candidate.career_level_overall ? (
-                          <Badge variant="outline" className="text-base">
-                            {candidate.career_level_overall}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Confidence</Label>
-                      {!candidate.career_level_confidence && (
-                        <div className="mt-2">
-                          <Input
-                            aria-label="Career Level Confidence"
-                            placeholder="Enter confidence"
-                            onBlur={(event) => {
-                              const next = event.target.value.trim();
-                              if (!next) return;
-                              updateCandidate(candidate.id, { career_level_confidence: next as any });
-                              event.target.value = '';
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="mt-2">
-                        {candidate.career_level_confidence ? (
-                          <Badge
-                            variant="outline"
-                            className={
-                              candidate.career_level_confidence === 'High'
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : candidate.career_level_confidence === 'Medium'
-                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  : 'bg-red-50 text-red-700 border-red-200'
-                            }
-                          >
-                            {candidate.career_level_confidence}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Years Experience</Label>
-                      {!candidate.years_experience_overall && (
-                        <div className="mt-2">
-                          <Input
-                            aria-label="Years Experience"
-                            placeholder="Enter years"
-                            onBlur={(event) => {
-                              const parsed = parseOptionalNumber(event.target.value);
-                              if (parsed === null) return;
-                              updateCandidate(candidate.id, { years_experience_overall: parsed });
-                              event.target.value = '';
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="mt-2 text-base">
-                        {candidate.years_experience_overall || '—'}
-                      </div>
-                    </div>
+                    <FieldDisplay label="Overall Career Level" value={form.career_level_overall} onChange={(value) => handleDraftChange('career_level_overall', value)} />
+                    <FieldDisplay label="Confidence" value={form.career_level_confidence} onChange={(value) => handleDraftChange('career_level_confidence', value)} />
+                    <FieldDisplay
+                      label="Years Experience"
+                      value={form.years_experience_overall?.toString()}
+                      onChange={(value) => handleDraftChange('years_experience_overall', parseOptionalNumber(value))}
+                    />
                   </div>
 
                   <Separator />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FieldDisplay
-                      label="Title Seniority Signal"
-                      value={candidate.title_seniority_signal}
-                      onUpdate={(value) => updateCandidate(candidate.id, { title_seniority_signal: value })}
-                    />
-                    <FieldDisplay
-                      label="Education Stage Signal"
-                      value={candidate.education_stage_signal}
-                      onUpdate={(value) => updateCandidate(candidate.id, { education_stage_signal: value })}
-                    />
+                    <FieldDisplay label="Title Seniority Signal" value={form.title_seniority_signal} onChange={(value) => handleDraftChange('title_seniority_signal', value)} />
+                    <FieldDisplay label="Education Stage Signal" value={form.education_stage_signal} onChange={(value) => handleDraftChange('education_stage_signal', value)} />
                     <FieldDisplay
                       label="Years in Field"
-                      value={candidate.years_experience_in_field?.toString()}
-                      onUpdate={(value) => {
-                        const parsed = parseOptionalNumber(value);
-                        if (parsed !== null) {
-                          updateCandidate(candidate.id, { years_experience_in_field: parsed });
-                        }
-                      }}
+                      value={form.years_experience_in_field?.toString()}
+                      onChange={(value) => handleDraftChange('years_experience_in_field', parseOptionalNumber(value))}
                     />
-                    <FieldDisplay
-                      label="Target Field Level"
-                      value={candidate.career_level_target_field}
-                      onUpdate={(value) => updateCandidate(candidate.id, { career_level_target_field: value })}
-                    />
+                    <FieldDisplay label="Target Field Level" value={form.career_level_target_field} onChange={(value) => handleDraftChange('career_level_target_field', value)} />
                   </div>
 
-                  <FieldDisplay
-                    label="Analysis Reason"
-                    value={candidate.career_level_reason}
-                    fullWidth
-                    onUpdate={(value) => updateCandidate(candidate.id, { career_level_reason: value })}
-                  />
+                  <FieldDisplay label="Analysis Reason" value={form.career_level_reason} fullWidth multiline onChange={(value) => handleDraftChange('career_level_reason', value)} />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Quality Metrics Tab */}
           <TabsContent value="quality" className="space-y-6">
             <Card>
               <CardHeader>
@@ -445,86 +276,18 @@ export function ReviewPage() {
               <CardContent>
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <MetricDisplay
-                      label="Parsed Characters"
-                      value={candidate.parsed_char_count?.toLocaleString()}
-                    />
-                    <MetricDisplay
-                      label="LLM Input Characters"
-                      value={candidate.llm_input_char_count?.toLocaleString()}
-                    />
-                    <MetricDisplay
-                      label="Fields Found"
-                      value={candidate.fields_found_count}
-                    />
-                    <MetricDisplay
-                      label="Required Fields"
-                      value={`${candidate.required_fields_found_count} / 10`}
-                    />
+                    <MetricDisplay label="Parsed Characters" value={candidate.parsed_char_count?.toLocaleString()} />
+                    <MetricDisplay label="LLM Input Characters" value={candidate.llm_input_char_count?.toLocaleString()} />
+                    <MetricDisplay label="Fields Found" value={candidate.fields_found_count} />
+                    <MetricDisplay label="Required Fields" value={`${candidate.required_fields_found_count} / 10`} />
                   </div>
 
                   <Separator />
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <Label>Extraction Confidence</Label>
-                      <div className="mt-2">
-                        {candidate.extraction_confidence ? (
-                          <Badge
-                            variant="outline"
-                            className={
-                              candidate.extraction_confidence === 'High'
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : candidate.extraction_confidence === 'Medium'
-                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  : 'bg-red-50 text-red-700 border-red-200'
-                            }
-                          >
-                            {candidate.extraction_confidence}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Resume Text Quality</Label>
-                      <div className="mt-2">
-                        {candidate.resume_text_quality ? (
-                          <Badge
-                            variant="outline"
-                            className={
-                              candidate.resume_text_quality === 'High'
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : candidate.resume_text_quality === 'Medium'
-                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  : 'bg-red-50 text-red-700 border-red-200'
-                            }
-                          >
-                            {candidate.resume_text_quality}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Review Status</Label>
-                      <div className="mt-2">
-                        <Badge
-                          variant="outline"
-                          className={
-                            candidate.needs_review === 'YES'
-                              ? 'bg-orange-50 text-orange-700 border-orange-200'
-                              : 'bg-green-50 text-green-700 border-green-200'
-                          }
-                        >
-                          {candidate.needs_review === 'YES' ? 'Needs Review' : 'Ready'}
-                        </Badge>
-                      </div>
-                    </div>
+                    <MetricDisplay label="Extraction Confidence" value={candidate.extraction_confidence} />
+                    <MetricDisplay label="Resume Text Quality" value={candidate.resume_text_quality} />
+                    <MetricDisplay label="Review Status" value={candidate.needs_review === 'YES' ? 'Needs Review' : 'Ready'} />
                   </div>
 
                   <Separator />
@@ -543,15 +306,10 @@ export function ReviewPage() {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FieldDisplay label="Resume File Name" value={candidate.resume_file_name} />
-                    <FieldDisplay label="File Type" value={candidate.resume_file_type} />
-                    <FieldDisplay
-                      label="Source Link"
-                      value={candidate.resume_source_link}
-                      fieldKey="resume_source_link"
-                      onUpdate={(value) => updateCandidate(candidate.id, { resume_source_link: value })}
-                    />
-                    <FieldDisplay label="Extracted At" value={new Date(candidate.extracted_at).toLocaleString()} />
+                    <FieldDisplay label="Resume File Name" value={candidate.resume_file_name} readOnly />
+                    <FieldDisplay label="File Type" value={candidate.resume_file_type} readOnly />
+                    <FieldDisplay label="Source Link" value={form.resume_source_link} onChange={(value) => handleDraftChange('resume_source_link', value)} />
+                    <FieldDisplay label="Extracted At" value={createdAtLabel} readOnly />
                   </div>
                 </div>
               </CardContent>
@@ -568,17 +326,20 @@ function FieldDisplay({
   value,
   required = false,
   fullWidth = false,
-  onUpdate,
+  readOnly = false,
+  multiline = false,
+  onChange,
 }: {
   label: string;
   value: string | number | null | undefined;
   required?: boolean;
   fullWidth?: boolean;
-  fieldKey?: string;
-  onUpdate?: (value: string) => void;
+  readOnly?: boolean;
+  multiline?: boolean;
+  onChange?: (value: string) => void;
 }) {
-  const displayValue = value || '—';
-  const isEmpty = !value;
+  const displayValue = value ?? '';
+  const isEmpty = !String(displayValue).trim();
 
   return (
     <div className={fullWidth ? 'col-span-full' : ''}>
@@ -590,21 +351,26 @@ function FieldDisplay({
           </Badge>
         )}
       </Label>
-      <div className={`mt-2 ${isEmpty ? 'text-gray-400' : 'text-gray-900'}`}>
-        {isEmpty && onUpdate ? (
+      <div className="mt-2">
+        {readOnly || !onChange ? (
+          <p className={`text-sm ${isEmpty ? 'text-gray-400' : 'text-gray-900'}`}>
+            {String(displayValue || '—')}
+          </p>
+        ) : multiline ? (
+          <Textarea
+            aria-label={label}
+            placeholder={`Enter ${label.toLowerCase()}`}
+            value={String(displayValue)}
+            onChange={(event) => onChange(event.target.value)}
+            rows={4}
+          />
+        ) : (
           <Input
             aria-label={label}
             placeholder={`Enter ${label.toLowerCase()}`}
-            onBlur={(event) => {
-              const next = event.target.value.trim();
-              if (next) {
-                onUpdate(next);
-                event.target.value = '';
-              }
-            }}
+            value={String(displayValue)}
+            onChange={(event) => onChange(event.target.value)}
           />
-        ) : (
-          <p className="text-sm">{displayValue}</p>
         )}
       </div>
     </div>

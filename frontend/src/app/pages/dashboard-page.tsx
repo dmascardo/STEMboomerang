@@ -1,22 +1,55 @@
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useCandidates } from '../contexts/candidates-context';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, Download, Trash2 } from 'lucide-react';
 import { downloadCSV } from '../utils/csv-export';
 import stemLogo from '../../assets/b3d32faed1940d68631ddd16b33aceaa647d5928.png';
+import { useAuth } from '../contexts/auth-context';
+import { toast } from 'sonner';
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { candidates, clearCandidates } = useCandidates();
+  const { candidates, clearCandidates, deleteCandidates } = useCandidates();
+  const { username, logout } = useAuth();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const needsReviewCount = candidates.filter(c => c.needs_review === 'YES').length;
   const readyCount = candidates.filter(c => c.needs_review === 'NO').length;
+  const allSelected = useMemo(
+    () => candidates.length > 0 && selectedIds.length === candidates.length,
+    [candidates.length, selectedIds.length],
+  );
 
   const handleExport = () => {
     downloadCSV(candidates, `stem-boomerang-candidates-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const toggleSelection = (candidateId: number, checked: boolean) => {
+    setSelectedIds((prev) => (
+      checked ? [...prev, candidateId] : prev.filter((id) => id !== candidateId)
+    ));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? candidates.map((candidate) => candidate.id) : []);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) {
+      return;
+    }
+
+    try {
+      await deleteCandidates(selectedIds);
+      setSelectedIds([]);
+      toast.success(`${selectedIds.length} candidate record${selectedIds.length === 1 ? '' : 's'} deleted`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete candidates');
+    }
   };
 
   return (
@@ -32,10 +65,19 @@ export function DashboardPage() {
                   className="h-10 w-auto"
                 />
               </div>
-              <Button onClick={() => navigate('/upload')} size="lg">
-                <Upload className="mr-2 h-5 w-5" />
-                Upload Resume
-              </Button>
+              <div className="flex items-center gap-3">
+                <span className="hidden text-sm text-gray-500 sm:inline">Signed in as {username}</span>
+                <Button onClick={() => navigate('/upload')} size="lg">
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload Resume
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}>
+                  Logout
+                </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -88,6 +130,14 @@ export function DashboardPage() {
                 </div>
                 {candidates.length > 0 && (
                     <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteSelected}
+                        disabled={selectedIds.length === 0}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Selected
+                      </Button>
                       <Button variant="outline" onClick={handleExport}>
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
@@ -117,6 +167,15 @@ export function DashboardPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">
+                            <input
+                              type="checkbox"
+                              aria-label="Select all candidates"
+                              checked={allSelected}
+                              onChange={(event) => toggleSelectAll(event.target.checked)}
+                              className="h-4 w-4 accent-[#1B7D87]"
+                            />
+                          </TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
@@ -130,6 +189,15 @@ export function DashboardPage() {
                       <TableBody>
                         {candidates.map(candidate => (
                             <TableRow key={candidate.id}>
+                              <TableCell>
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Select ${candidate.full_name || candidate.email || `candidate ${candidate.id}`}`}
+                                  checked={selectedIds.includes(candidate.id)}
+                                  onChange={(event) => toggleSelection(candidate.id, event.target.checked)}
+                                  className="h-4 w-4 accent-[#1B7D87]"
+                                />
+                              </TableCell>
                               <TableCell>
                                 {candidate.needs_review === 'YES' ? (
                                     <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">

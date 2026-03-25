@@ -3,23 +3,34 @@ import { UploadPage } from "./pages/upload-page";
 import { ReviewPage } from "./pages/review-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { RootLayout } from "./layouts/root-layout";
+import { LoginPage } from "./pages/login-page";
+import { RequireAuth } from "./components/auth/require-auth";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    Component: RootLayout,
+    path: "/login",
+    Component: LoginPage,
+  },
+  {
+    Component: RequireAuth,
     children: [
       {
-        index: true,
-        Component: DashboardPage,
-      },
-      {
-        path: "upload",
-        Component: UploadPage,
-      },
-      {
-        path: "review/:id",
-        Component: ReviewPage,
+        path: "/",
+        Component: RootLayout,
+        children: [
+          {
+            index: true,
+            Component: DashboardPage,
+          },
+          {
+            path: "upload",
+            Component: UploadPage,
+          },
+          {
+            path: "review/:id",
+            Component: ReviewPage,
+          },
+        ],
       },
     ],
   },
